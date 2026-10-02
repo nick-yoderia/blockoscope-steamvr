@@ -16,6 +16,7 @@ public final class StereoConfig {
     private static final String HEADER = String.join("\n",
         "Stereo Theater",
         "enabled: render half side-by-side 3D (false = normal 2D)",
+        "renderScale: % of the half-window resolution each eye renders at (lower = faster, above 100 = sharper)",
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
         "handDepthPercent: depth of your hand and held item as a % of the world's (0 = on the screen surface)",
@@ -25,6 +26,7 @@ public final class StereoConfig {
         "confineCursor: keep the cursor inside the game window while it is focused");
 
     private static boolean enabled = true;
+    private static int renderScale = 100;
     private static int depthPercent = 100;
     private static float focusDistance = 4f;
     private static int handDepthPercent = 100;
@@ -40,6 +42,7 @@ public final class StereoConfig {
     private StereoConfig() {}
 
     public static boolean enabled() { return enabled; }
+    public static int renderScale() { return renderScale; }
     public static int depthPercent() { return depthPercent; }
     public static float focusDistance() { return focusDistance; }
     public static int handDepthPercent() { return handDepthPercent; }
@@ -49,6 +52,7 @@ public final class StereoConfig {
     public static boolean confineCursor() { return confineCursor; }
 
     public static void setEnabled(boolean value) { enabled = value; }
+    public static void setRenderScale(int value) { renderScale = Math.max(25, Math.min(200, value)); }
     public static void setDepthPercent(int value) { depthPercent = Math.max(0, Math.min(300, value)); }
     public static void setFocusDistance(float value) { focusDistance = Math.max(0f, value); }
     public static void setHandDepthPercent(int value) { handDepthPercent = Math.max(0, Math.min(200, value)); }
@@ -72,6 +76,7 @@ public final class StereoConfig {
             }
         }
         enabled = parseBoolean(props.getProperty("enabled"), true);
+        setRenderScale((int) Math.round(parseDouble(props.getProperty("renderScale"), 100)));
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
         setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 4));
         setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), 100)));
@@ -85,6 +90,7 @@ public final class StereoConfig {
     public static void save() {
         Properties out = new Properties();
         out.setProperty("enabled", String.valueOf(enabled));
+        out.setProperty("renderScale", String.valueOf(renderScale));
         out.setProperty("depthPercent", String.valueOf(depthPercent));
         out.setProperty("focusDistance", String.valueOf(focusDistance));
         out.setProperty("handDepthPercent", String.valueOf(handDepthPercent));

@@ -34,6 +34,13 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setEnabled)
             .build());
 
+        depth.addEntry(entries.startIntSlider(Component.literal("Render scale"), StereoConfig.renderScale(), 25, 200)
+            .setDefaultValue(100)
+            .setTextGetter(value -> Component.literal(value + "%"))
+            .setTooltip(Component.literal("Lower for more FPS, higher for sharper."))
+            .setSaveConsumer(StereoConfig::setRenderScale)
+            .build());
+
         depth.addEntry(entries.startIntSlider(Component.literal("Depth strength"), StereoConfig.depthPercent(), 0, 300)
             .setDefaultValue(100)
             .setTextGetter(value -> Component.literal(value == 0 ? "Flat" : value + "%"))

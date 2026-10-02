@@ -36,6 +36,12 @@ public abstract class GameRendererMixin {
         return StereoRenderer.isRendering() ? StereoRenderer.eyeWidth() : width;
     }
 
+    @ModifyArg(method = "render", index = 1, at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/GlobalSettingsUniform;update(IIDJLnet/minecraft/client/DeltaTracker;ILnet/minecraft/world/phys/Vec3;Z)V"))
+    private int stereoTheater$eyeScreenHeight(int height) {
+        return StereoRenderer.isRendering() ? StereoRenderer.eyeHeight() : height;
+    }
+
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/gui/render/GuiRenderer;endFrame()V"))
     private void stereoTheater$guiEndFrame(GuiRenderer renderer) {

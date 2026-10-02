@@ -36,6 +36,8 @@ public final class StereoRenderer {
     private static final RenderTarget[] targets = new RenderTarget[2];
     private static int eye = NONE;
     private static int eyeWidth;
+    private static int eyeHeight;
+    private static int windowHeight;
     private static int windowWidth;
     private static String lastReason = "";
     /** Horizontal scale of the world projection (m00) this frame, used to give the GUI matching disparity. */
@@ -62,8 +64,17 @@ public final class StereoRenderer {
         return eye == NONE || windowWidth <= 0 ? 1f : (float) eyeWidth / windowWidth;
     }
 
+    /** Vertical factor from window pixels to eye target pixels while an eye renders (1 otherwise). */
+    public static float eyeScaleY() {
+        return eye == NONE || windowHeight <= 0 ? 1f : (float) eyeHeight / windowHeight;
+    }
+
     public static int eyeWidth() {
         return eyeWidth;
+    }
+
+    public static int eyeHeight() {
+        return eyeHeight;
     }
 
     /** Replaces GameRenderer.render(deltaTracker, renderLevel) in Minecraft.renderFrame. */
@@ -89,15 +100,21 @@ public final class StereoRenderer {
         if (main.width != width || main.height != height) {
             gameRenderer.resize(width, height); // what render() would do; it is skipped while an eye renders
         }
+        // Each eye covers half the window; the render scale trades sharpness for speed (the blit rescales).
         int halfWidth = width / 2;
-        ensureTargets(halfWidth, height);
+        float scale = StereoConfig.renderScale() / 100f;
+        int targetWidth = Math.max(1, Math.round(halfWidth * scale));
+        int targetHeight = Math.max(1, Math.round(height * scale));
+        ensureTargets(targetWidth, targetHeight);
 
         CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
         Vec3 centre = camera.pos;
         Matrix4f projection = camera.projectionMatrix == null ? null : new Matrix4f(camera.projectionMatrix);
         GameRendererAccessor access = (GameRendererAccessor) gameRenderer;
         windowWidth = width;
-        eyeWidth = halfWidth;
+        windowHeight = height;
+        eyeWidth = targetWidth;
+        eyeHeight = targetHeight;
         worldProjectionScale = projection != null ? projection.m00()
             : (float) (1.0 / ((double) width / height * Math.tan(Math.toRadians(35.0))));
         try {

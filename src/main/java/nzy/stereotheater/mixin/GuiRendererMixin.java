@@ -48,6 +48,11 @@ public abstract class GuiRendererMixin {
             // Rounding and the shift can push the edge past the eye target, which the render pass rejects.
             x = Math.min(Math.max(0, left), StereoRenderer.eyeWidth());
             width = Math.max(0, Math.min(right, StereoRenderer.eyeWidth()) - x);
+            float scaleY = StereoRenderer.eyeScaleY();
+            int bottom = (int) Math.floor(y * scaleY);
+            int top = (int) Math.ceil((y + height) * scaleY);
+            y = Math.min(Math.max(0, bottom), StereoRenderer.eyeHeight());
+            height = Math.max(0, Math.min(top, StereoRenderer.eyeHeight()) - y);
         }
         pass.enableScissor(x, y, width, height);
     }
