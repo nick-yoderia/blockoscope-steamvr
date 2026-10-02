@@ -10,12 +10,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.client.Camera;
 import nzy.stereotheater.mixin.CameraAccessor;
 import nzy.stereotheater.mixin.GameRendererAccessor;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
 /**
@@ -54,6 +57,9 @@ public final class StereoRenderer {
      * centre camera when the frame is extracted; adding this moves them to where they belong for the eye.
      */
     private static final Vector3f eyeShift = new Vector3f();
+    /** 1 / distance of what the crosshair points at (0 = nothing, infinitely far), smoothed. */
+    private static float crosshairInverseDistance;
+    private static long lastCrosshairNanos;
     /** Counts eye renders, so per-frame caches in other mods can tell one eye from the next. */
     private static int eyePassCounter;
 
@@ -137,6 +143,7 @@ public final class StereoRenderer {
 
         CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
         Camera mainCamera = gameRenderer.mainCamera();
+        updateCrosshairDepth(mainCamera);
         Vec3 centre = camera.pos;
         Vec3 mainCentre = mainCamera.position();
         Matrix4f projection = camera.projectionMatrix == null ? null : new Matrix4f(camera.projectionMatrix);
@@ -237,6 +244,46 @@ public final class StereoRenderer {
     /** The GUI's sideways shift in this eye, in eye target pixels (for scissor rectangles). */
     public static float guiOffsetPixels() {
         return guiOffset() * eyeWidth / 2f;
+    }
+
+    /**
+     * The crosshair gets the depth of whatever it points at instead of the HUD's, so the target and the crosshair can
+     * be looked at together without either one doubling (Vivecraft does the same with its 3D crosshair).
+     */
+    public static Matrix4f eyeCrosshairProjection(Matrix4f projection) {
+        if (!StereoConfig.crosshairAtTarget()) {
+            return eyeGuiProjection(projection);
+        }
+        float focus = StereoConfig.focusDistance();
+        float inverseFocus = focus > 0f ? 1f / focus : 0f;
+        float offset = side() * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - crosshairInverseDistance);
+        return new Matrix4f().translation(offset, 0f, 0f).mul(projection);
+    }
+
+    /** How far away the crosshair's target is: the block or entity it picks, or else a longer block raycast. */
+    private static void updateCrosshairDepth(Camera camera) {
+        Minecraft minecraft = Minecraft.getInstance();
+        float target = 0f;
+        if (camera != null && minecraft.level != null && minecraft.player != null) {
+            Vec3 from = camera.position();
+            Vector3fc forward = camera.forwardVector();
+            Vec3 direction = new Vec3(forward.x(), forward.y(), forward.z());
+            HitResult hit = minecraft.hitResult;
+            if (hit == null || hit.getType() == HitResult.Type.MISS) {
+                double reach = Math.min(512.0, minecraft.options.getEffectiveRenderDistance() * 16.0);
+                hit = minecraft.level.clip(new ClipContext(from, from.add(direction.scale(reach)), ClipContext.Block.OUTLINE,
+                    ClipContext.Fluid.ANY, minecraft.player));
+            }
+            if (hit != null && hit.getType() != HitResult.Type.MISS) {
+                double distance = hit.getLocation().subtract(from).dot(direction);
+                target = (float) (1.0 / Math.max(0.3, distance));
+            }
+        }
+        long now = System.nanoTime();
+        float seconds = lastCrosshairNanos == 0L ? 1f : (now - lastCrosshairNanos) / 1.0e9f;
+        lastCrosshairNanos = now;
+        // Ease towards the new depth over a few frames, so the crosshair doesn't jitter along block edges.
+        crosshairInverseDistance += (target - crosshairInverseDistance) * (1f - (float) Math.exp(-seconds / 0.04f));
     }
 
     /** The GUI's sideways shift in this eye, in clip space. */

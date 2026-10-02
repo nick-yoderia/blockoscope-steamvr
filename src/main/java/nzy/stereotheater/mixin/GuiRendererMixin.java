@@ -1,7 +1,9 @@
 package nzy.stereotheater.mixin;
 
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderPass;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
@@ -9,6 +11,7 @@ import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import nzy.stereotheater.StereoRenderer;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -57,12 +60,48 @@ public abstract class GuiRendererMixin {
         pass.enableScissor(x, y, width, height);
     }
 
+    @Unique
+    private ProjectionMatrixBuffer stereoTheater$crosshairBuffer;
+    @Unique
+    private GpuBufferSlice stereoTheater$guiSlice;
+    @Unique
+    private GpuBufferSlice stereoTheater$crosshairSlice;
+    @Unique
+    private boolean stereoTheater$crosshairBound;
+
     @Redirect(method = "draw", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lnet/minecraft/client/renderer/Projection;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"))
     private GpuBufferSlice stereoTheater$guiDepth(ProjectionMatrixBuffer buffer, Projection projection) {
+        stereoTheater$guiSlice = null;
         if (!StereoRenderer.isRendering()) {
             return buffer.getBuffer(projection);
         }
-        return buffer.getBuffer(StereoRenderer.eyeGuiProjection(projection.getMatrix(new Matrix4f())));
+        Matrix4f matrix = projection.getMatrix(new Matrix4f());
+        if (stereoTheater$crosshairBuffer == null) {
+            stereoTheater$crosshairBuffer = new ProjectionMatrixBuffer("stereo crosshair");
+        }
+        stereoTheater$crosshairSlice = stereoTheater$crosshairBuffer.getBuffer(StereoRenderer.eyeCrosshairProjection(matrix));
+        stereoTheater$guiSlice = buffer.getBuffer(StereoRenderer.eyeGuiProjection(matrix));
+        return stereoTheater$guiSlice;
+    }
+
+    /** The crosshair is drawn with its own pipeline; it gets a projection that puts it at the depth of its target. */
+    @Redirect(method = "executeDraw", at = @At(value = "INVOKE",
+        target = "Lcom/mojang/blaze3d/systems/RenderPass;setPipeline(Lcom/mojang/blaze3d/pipeline/RenderPipeline;)V"))
+    private void stereoTheater$crosshairDepth(RenderPass pass, RenderPipeline pipeline) {
+        if (stereoTheater$guiSlice != null) {
+            boolean crosshair = pipeline == RenderPipelines.CROSSHAIR;
+            if (crosshair != stereoTheater$crosshairBound) {
+                pass.setUniform("Projection", crosshair ? stereoTheater$crosshairSlice : stereoTheater$guiSlice);
+                stereoTheater$crosshairBound = crosshair;
+            }
+        }
+        pass.setPipeline(pipeline);
+    }
+
+    /** Each render pass starts with the GUI projection bound. */
+    @Inject(method = "executeDrawRange", at = @At("HEAD"))
+    private void stereoTheater$resetCrosshairBinding(CallbackInfo ci) {
+        stereoTheater$crosshairBound = false;
     }
 }

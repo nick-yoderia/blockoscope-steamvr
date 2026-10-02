@@ -20,6 +20,7 @@ public final class StereoConfig {
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
         "handDepthPercent: depth of your hand and held item as a % of the world's (0 = on the screen surface)",
+        "crosshairAtTarget: show the crosshair at the depth of what it points at (false = at the HUD distance)",
         "hudDistance: metres at which the HUD and menus float; 0 = on the screen surface",
         "cameraBobbing: vanilla view bobbing of the camera while walking (the hand still bobs either way)",
         "damageTilt: tilt the camera when hurt or dying",
@@ -34,6 +35,7 @@ public final class StereoConfig {
     private static float focusDistance = 10f;
     private static int handDepthPercent = 100;
     private static float hudDistance = 1.35f;
+    private static boolean crosshairAtTarget = true;
     private static boolean swapEyes = false;
     private static boolean cameraBobbing = false;
     private static boolean damageTilt = false;
@@ -53,6 +55,7 @@ public final class StereoConfig {
     public static float focusDistance() { return focusDistance; }
     public static int handDepthPercent() { return handDepthPercent; }
     public static float hudDistance() { return hudDistance; }
+    public static boolean crosshairAtTarget() { return crosshairAtTarget; }
     public static boolean swapEyes() { return swapEyes; }
     public static boolean cameraBobbing() { return cameraBobbing; }
     public static boolean damageTilt() { return damageTilt; }
@@ -66,6 +69,7 @@ public final class StereoConfig {
     public static void setFocusDistance(float value) { focusDistance = Math.max(0f, value); }
     public static void setHandDepthPercent(int value) { handDepthPercent = Math.max(0, Math.min(200, value)); }
     public static void setHudDistance(float value) { hudDistance = Math.max(0f, value); }
+    public static void setCrosshairAtTarget(boolean value) { crosshairAtTarget = value; }
     public static void setSwapEyes(boolean value) { swapEyes = value; }
     public static void setCameraBobbing(boolean value) { cameraBobbing = value; }
     public static void setDamageTilt(boolean value) { damageTilt = value; }
@@ -93,6 +97,7 @@ public final class StereoConfig {
         setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 10));
         setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), 100)));
         setHudDistance((float) parseDouble(props.getProperty("hudDistance"), 1.35));
+        crosshairAtTarget = parseBoolean(props.getProperty("crosshairAtTarget"), true);
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
         cameraBobbing = parseBoolean(props.getProperty("cameraBobbing"), false);
         damageTilt = parseBoolean(props.getProperty("damageTilt"), false);
@@ -110,6 +115,7 @@ public final class StereoConfig {
         out.setProperty("focusDistance", String.valueOf(focusDistance));
         out.setProperty("handDepthPercent", String.valueOf(handDepthPercent));
         out.setProperty("hudDistance", String.valueOf(hudDistance));
+        out.setProperty("crosshairAtTarget", String.valueOf(crosshairAtTarget));
         out.setProperty("swapEyes", String.valueOf(swapEyes));
         out.setProperty("cameraBobbing", String.valueOf(cameraBobbing));
         out.setProperty("damageTilt", String.valueOf(damageTilt));

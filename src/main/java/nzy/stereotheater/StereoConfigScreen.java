@@ -93,6 +93,13 @@ public final class StereoConfigScreen {
             .setSaveConsumer(value -> StereoConfig.setHudDistance(value / 100f))
             .build());
 
+        hud.addEntry(entries.startBooleanToggle(Component.literal("Crosshair depth"), StereoConfig.crosshairAtTarget())
+            .setDefaultValue(true)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "At target" : "With HUD"))
+            .setTooltip(Component.literal("At target = depth of what you aim at."))
+            .setSaveConsumer(StereoConfig::setCrosshairAtTarget)
+            .build());
+
         hud.addEntry(entries.startIntSlider(Component.literal("Hand depth"), StereoConfig.handDepthPercent(), 0, 200)
             .setDefaultValue(100)
             .setTextGetter(value -> Component.literal(value == 0 ? "Screen" : value + "%"))
