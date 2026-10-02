@@ -40,7 +40,8 @@ public final class StereoRenderer {
     /** 0 for the first eye rendered this frame, 1 for the second. */
     private static int pass;
     /** Debug: render the right eye first (to tell per-eye problems from first-render problems). */
-    private static final boolean RIGHT_FIRST = Boolean.getBoolean("stereotheater.rightFirst");
+    private static final boolean RIGHT_FIRST = Boolean.getBoolean("stereotheater.rightFirst")
+        || java.nio.file.Files.exists(java.nio.file.Path.of("config", "stereo-theater.rightfirst"));
     private static int eyeWidth;
     private static int eyeHeight;
     private static int windowHeight;

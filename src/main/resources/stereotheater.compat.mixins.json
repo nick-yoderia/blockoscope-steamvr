@@ -10,6 +10,7 @@
     "iris.IrisRenderTargetsMixin",
     "iris.IrisTimerMixin",
     "sodium.SodiumUniformBufferManagerMixin",
+    "voxy.VoxyIrisPipelineMixin",
     "voxy.VoxyViewportSelectorMixin"
   ],
   "injectors": {

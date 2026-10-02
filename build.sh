@@ -11,6 +11,7 @@ LIBS="$APPDATA/PrismLauncher/libraries"
 MIXIN="$(ls "$LIBS"/net/fabricmc/sponge-mixin/*/sponge-mixin-*.jar | tail -1)"
 LWJGL="$(ls "$LIBS"/org/lwjgl/lwjgl/*/lwjgl-*.jar | grep -v natives | tail -1)"
 GLFW="$(ls "$LIBS"/org/lwjgl/lwjgl-glfw/*/lwjgl-glfw-*.jar | grep -v natives | tail -1)"
+GL="$(ls "$LIBS"/org/lwjgl/lwjgl-opengl/*/lwjgl-opengl-*.jar | grep -v natives | tail -1)"
 MC="$LIBS/com/mojang/minecraft/$MC_VERSION/minecraft-$MC_VERSION-client.jar"
 JOML="$(ls "$LIBS"/org/joml/joml/*/joml-*.jar | tail -1)"
 MODS="$APPDATA/PrismLauncher/instances/26.2-Stereo-Dev/minecraft/mods"
@@ -23,7 +24,7 @@ LOADER="$(ls "$LIBS"/net/fabricmc/fabric-loader/*/fabric-loader-*.jar | tail -1)
 ASM_TREE="$(ls "$LIBS"/org/ow2/asm/asm-tree/*/asm-tree-*.jar | tail -1)"
 CP=""
 MOJANG_LIBS="$(ls "$LIBS"/com/mojang/brigadier/*/brigadier-*.jar "$LIBS"/com/mojang/datafixerupper/*/datafixerupper-*.jar "$LIBS"/org/jspecify/jspecify/*/jspecify-*.jar "$LIBS"/it/unimi/dsi/fastutil/*/fastutil-*.jar 2>/dev/null)"
-for jar in "$MIXIN" "$LWJGL" "$GLFW" "$JOML" "$MC" "$CLOTH" "$MODMENU" "$IRIS" "$SODIUM" "$VOXY" "$LOADER" "$ASM_TREE" $MOJANG_LIBS; do
+for jar in "$MIXIN" "$LWJGL" "$GLFW" "$GL" "$JOML" "$MC" "$CLOTH" "$MODMENU" "$IRIS" "$SODIUM" "$VOXY" "$LOADER" "$ASM_TREE" $MOJANG_LIBS; do
   CP="$CP$(cygpath -w "$jar");"
 done
 VERSION="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' src/main/resources/fabric.mod.json)"
