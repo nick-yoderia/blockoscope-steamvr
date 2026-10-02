@@ -227,10 +227,10 @@ public final class StereoRenderer {
         float halfIpd = StereoConfig.ipd() / 2f * StereoConfig.handDepthPercent() / 100f;
         float side = side();
         float focus = StereoConfig.focusDistance();
-        if (focus > 0f) {
-            projection.m20(projection.m20() - side * projection.m00() * halfIpd / focus);
-        }
-        return projection.translate(-side * halfIpd, 0f, 0f);
+        // Shift in clip space (x += k * w) rather than editing one element, so it stays right when the matrix
+        // already contains other transforms (Iris scales the hand's depth and adds view bobbing).
+        float shift = focus > 0f ? side * projection.m00() * halfIpd / focus : 0f;
+        return new Matrix4f().m30(shift).mul(projection).translate(-side * halfIpd, 0f, 0f);
     }
 
     /**

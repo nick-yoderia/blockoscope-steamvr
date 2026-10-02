@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_17",
   "client": [
     "iris.IrisFrameCounterMixin",
+    "iris.IrisHandRendererMixin",
     "iris.IrisPipelineManagerMixin",
     "iris.IrisRenderTargetsMixin",
     "iris.IrisTimerMixin",
