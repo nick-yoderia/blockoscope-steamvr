@@ -9,6 +9,16 @@ import java.util.Properties;
 
 /** Settings stored in config/parallax-theater.properties. */
 public final class StereoConfig {
+    /** Where the in-game HUD sits in depth. */
+    public enum HudDepth {
+        /** On the nearest thing behind the hotbar and status bars (own raycasts). */
+        SCENE,
+        /** At the crosshair's depth. */
+        AIM,
+        /** At {@link #hudDistance()}. */
+        FIXED
+    }
+
     /** Average human eye separation in metres; depth strength is a percentage of this. */
     public static final float AVERAGE_IPD = 0.064f;
 
@@ -27,8 +37,8 @@ public final class StereoConfig {
         "handDepthPercent: depth of your hand and held item as a % of the world's (0 = on the screen surface)",
         "crosshairAtTarget: show the crosshair at the depth of what it aims at within reach (false = with the HUD)",
         "crosshairRestOffset: metres nearer (negative) or farther than your block reach where the crosshair rests when nothing is in reach",
-        "hudFollowsAim: the in-game HUD sits at the crosshair's depth, so it doesn't double while you look where you aim",
-        "hudDistance: metres at which the in-game HUD floats when it doesn't follow the aim; 0 = on the screen surface",
+        "hudDepth: depth of the in-game HUD: scene (on whatever is behind the hotbar), aim (at the crosshair's depth) or fixed (hudDistance)",
+        "hudDistance: metres at which the in-game HUD floats when hudDepth is fixed; 0 = on the screen surface",
         "menuDistance: metres at which menus and other screens float; 0 = on the screen surface",
         "cameraBobbing: vanilla view bobbing of the camera while walking (the hand still bobs either way)",
         "damageTilt: tilt the camera when hurt or dying",
@@ -45,7 +55,7 @@ public final class StereoConfig {
     private static int handReach = 30;
     private static int handRaise = 0;
     private static int handInward = 0;
-    private static boolean hudFollowsAim = true;
+    private static HudDepth hudDepth = HudDepth.SCENE;
     private static float hudDistance = 1.35f;
     private static float menuDistance = 0f;
     private static boolean crosshairAtTarget = true;
@@ -71,7 +81,7 @@ public final class StereoConfig {
     public static int handReach() { return handReach; }
     public static int handRaise() { return handRaise; }
     public static int handInward() { return handInward; }
-    public static boolean hudFollowsAim() { return hudFollowsAim; }
+    public static HudDepth hudDepth() { return hudDepth; }
     public static float hudDistance() { return hudDistance; }
     public static float menuDistance() { return menuDistance; }
     public static boolean crosshairAtTarget() { return crosshairAtTarget; }
@@ -91,7 +101,7 @@ public final class StereoConfig {
     public static void setHandReach(int value) { handReach = Math.max(0, Math.min(60, value)); }
     public static void setHandRaise(int value) { handRaise = Math.max(0, Math.min(40, value)); }
     public static void setHandInward(int value) { handInward = Math.max(0, Math.min(40, value)); }
-    public static void setHudFollowsAim(boolean value) { hudFollowsAim = value; }
+    public static void setHudDepth(HudDepth value) { hudDepth = value == null ? HudDepth.SCENE : value; }
     public static void setHudDistance(float value) { hudDistance = Math.max(0f, value); }
     public static void setMenuDistance(float value) { menuDistance = Math.max(0f, value); }
     public static void setCrosshairAtTarget(boolean value) { crosshairAtTarget = value; }
@@ -126,7 +136,9 @@ public final class StereoConfig {
         setHandReach((int) Math.round(parseDouble(props.getProperty("handReach"), 30)));
         setHandRaise((int) Math.round(parseDouble(props.getProperty("handRaise"), 0)));
         setHandInward((int) Math.round(parseDouble(props.getProperty("handInward"), 0)));
-        hudFollowsAim = parseBoolean(props.getProperty("hudFollowsAim"), true);
+        // 0.1.3 had hudFollowsAim (true = aim, false = fixed); its default now becomes scene.
+        HudDepth oldDepth = "false".equals(props.getProperty("hudFollowsAim", "").trim()) ? HudDepth.FIXED : HudDepth.SCENE;
+        hudDepth = parseEnum(HudDepth.class, props.getProperty("hudDepth"), oldDepth);
         setHudDistance((float) parseDouble(props.getProperty("hudDistance"), 1.35));
         setMenuDistance((float) parseDouble(props.getProperty("menuDistance"), 0));
         crosshairAtTarget = parseBoolean(props.getProperty("crosshairAtTarget"), true);
@@ -150,7 +162,7 @@ public final class StereoConfig {
         out.setProperty("handReach", String.valueOf(handReach));
         out.setProperty("handRaise", String.valueOf(handRaise));
         out.setProperty("handInward", String.valueOf(handInward));
-        out.setProperty("hudFollowsAim", String.valueOf(hudFollowsAim));
+        out.setProperty("hudDepth", hudDepth.name().toLowerCase(java.util.Locale.ROOT));
         out.setProperty("hudDistance", String.valueOf(hudDistance));
         out.setProperty("menuDistance", String.valueOf(menuDistance));
         out.setProperty("crosshairAtTarget", String.valueOf(crosshairAtTarget));
@@ -173,6 +185,14 @@ public final class StereoConfig {
 
     private static boolean parseBoolean(String value, boolean fallback) {
         return value == null ? fallback : Boolean.parseBoolean(value.trim());
+    }
+
+    private static <E extends Enum<E>> E parseEnum(Class<E> type, String value, E fallback) {
+        try {
+            return value == null ? fallback : Enum.valueOf(type, value.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return fallback;
+        }
     }
 
     private static double parseDouble(String value, double fallback) {

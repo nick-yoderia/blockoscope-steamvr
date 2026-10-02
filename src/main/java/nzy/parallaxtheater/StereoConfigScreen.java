@@ -85,11 +85,16 @@ public final class StereoConfigScreen {
 
         // --- HUD ---
         ConfigCategory hud = builder.getOrCreateCategory(Component.literal("HUD & Hand"));
-        hud.addEntry(entries.startBooleanToggle(Component.literal("HUD depth"), StereoConfig.hudFollowsAim())
-            .setDefaultValue(true)
-            .setYesNoTextSupplier(on -> Component.literal(on ? "Follows aim" : "Fixed"))
-            .setTooltip(Component.literal("Follows aim = at the crosshair's depth."))
-            .setSaveConsumer(StereoConfig::setHudFollowsAim)
+        hud.addEntry(entries.startEnumSelector(Component.literal("HUD depth"), StereoConfig.HudDepth.class,
+                StereoConfig.hudDepth())
+            .setDefaultValue(StereoConfig.HudDepth.SCENE)
+            .setEnumNameProvider(value -> Component.literal(switch ((StereoConfig.HudDepth) value) {
+                case SCENE -> "On scene";
+                case AIM -> "At crosshair";
+                case FIXED -> "Fixed";
+            }))
+            .setTooltip(Component.literal("On scene = on what is behind the hotbar."))
+            .setSaveConsumer(StereoConfig::setHudDepth)
             .build());
 
         hud.addEntry(entries.startIntSlider(Component.literal("Fixed HUD distance"),

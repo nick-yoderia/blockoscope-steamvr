@@ -89,10 +89,19 @@ public abstract class GameRendererMixin {
         return StereoRenderer.isRendering() ? StereoRenderer.eyeHeight() : height;
     }
 
+    /** When the HUD is drawn into the window after the eyes are packed, the eyes skip it. */
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/gui/render/GuiRenderer;render()V"))
+    private void parallaxTheater$guiRender(GuiRenderer renderer) {
+        if (!StereoRenderer.guiDrawnOverWindow()) {
+            renderer.render();
+        }
+    }
+
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/gui/render/GuiRenderer;endFrame()V"))
     private void parallaxTheater$guiEndFrame(GuiRenderer renderer) {
-        if (!StereoRenderer.isFirstEye()) {
+        if (!StereoRenderer.isFirstEye() && !StereoRenderer.guiDrawnOverWindow()) {
             renderer.endFrame();
         }
     }

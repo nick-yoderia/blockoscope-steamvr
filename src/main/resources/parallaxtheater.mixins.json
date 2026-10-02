@@ -9,6 +9,7 @@
     "GameRendererMixin",
     "GuiMixin",
     "GuiRendererMixin",
+    "GuiRenderStateAccessor",
     "ItemInHandRendererMixin",
     "ItemPickupParticleStateMixin",
     "KeyboardHandlerMixin",

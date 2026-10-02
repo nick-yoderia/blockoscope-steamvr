@@ -26,7 +26,10 @@ import java.util.List;
  * picture-in-picture elements turned into blits, everything meshed and uploaded) in the first eye only, and the
  * second eye draws the same meshes: preparing again added every glyph and item blit to the kept state a second time,
  * so the second eye drew them twice and the eyes no longer matched. Scissor rectangles (scrolling lists and the like)
- * are worked out in window pixels; they are squeezed to the eye target and shifted with the GUI.
+ * are worked out in window pixels; they are squeezed to the eye's area and shifted with the GUI.
+ *
+ * The GUI is drawn either into each eye target during that eye's render (when it blurs the world behind it, as menus
+ * do) or into the window after the eyes are packed (the in-game HUD); see StereoRenderer.drawGuiOverWindow.
  */
 @Mixin(value = GuiRenderer.class, remap = false)
 public abstract class GuiRendererMixin {
@@ -42,7 +45,7 @@ public abstract class GuiRendererMixin {
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/state/gui/GuiRenderState;reset()V"))
     private void parallaxTheater$keepStateForSecondEye(GuiRenderState state) {
-        if (!StereoRenderer.isFirstEye()) {
+        if (!StereoRenderer.isFirstGuiPass()) {
             state.reset();
         }
     }
@@ -50,7 +53,7 @@ public abstract class GuiRendererMixin {
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/gui/render/GuiRenderer;prepare()V"))
     private void parallaxTheater$prepareOnce(GuiRenderer self) {
-        if (!StereoRenderer.isSecondEye()) {
+        if (!StereoRenderer.isSecondGuiPass()) {
             prepare();
         }
     }
@@ -58,7 +61,7 @@ public abstract class GuiRendererMixin {
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;upload()V"))
     private void parallaxTheater$uploadOnce(StagedVertexBuffer buffer) {
-        if (!StereoRenderer.isSecondEye()) {
+        if (!StereoRenderer.isSecondGuiPass()) {
             buffer.upload();
         }
     }
@@ -67,7 +70,7 @@ public abstract class GuiRendererMixin {
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;endDraw()V"))
     private void parallaxTheater$keepMeshes(StagedVertexBuffer buffer) {
-        if (!StereoRenderer.isFirstEye()) {
+        if (!StereoRenderer.isFirstGuiPass()) {
             buffer.endDraw();
         }
     }
@@ -75,14 +78,14 @@ public abstract class GuiRendererMixin {
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;endFrame()V"))
     private void parallaxTheater$keepMeshBuffers(StagedVertexBuffer buffer) {
-        if (!StereoRenderer.isFirstEye()) {
+        if (!StereoRenderer.isFirstGuiPass()) {
             buffer.endFrame();
         }
     }
 
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/List;clear()V"))
     private void parallaxTheater$keepDraws(List<?> draws) {
-        if (!StereoRenderer.isFirstEye()) {
+        if (!StereoRenderer.isFirstGuiPass()) {
             draws.clear();
         }
     }
@@ -90,14 +93,14 @@ public abstract class GuiRendererMixin {
     @Redirect(method = "render", at = @At(value = "FIELD", opcode = 181 /* PUTFIELD */,
         target = "Lnet/minecraft/client/gui/render/GuiRenderer;firstDrawIndexAfterBlur:I"))
     private void parallaxTheater$keepBlurSplit(GuiRenderer self, int value) {
-        if (!StereoRenderer.isFirstEye()) {
+        if (!StereoRenderer.isFirstGuiPass()) {
             firstDrawIndexAfterBlur = value;
         }
     }
 
     @Inject(method = "clearUnusedOversizedItemRenderers", at = @At("HEAD"), cancellable = true)
     private void parallaxTheater$keepItemRenderers(CallbackInfo ci) {
-        if (StereoRenderer.isFirstEye()) {
+        if (StereoRenderer.isFirstGuiPass()) {
             ci.cancel();
         }
     }
@@ -105,22 +108,38 @@ public abstract class GuiRendererMixin {
     @Redirect(method = "enableScissor", at = @At(value = "INVOKE",
         target = "Lcom/mojang/blaze3d/systems/RenderPass;enableScissor(IIII)V"))
     private void parallaxTheater$squeezeScissor(RenderPass pass, int x, int y, int width, int height) {
-        if (StereoRenderer.isRendering()) {
-            // Squeeze to the eye target and follow the GUI's sideways shift for the HUD distance.
-            float scale = StereoRenderer.eyeScaleX();
+        if (StereoRenderer.isGuiPass()) {
+            // Squeeze to the eye's half and follow the GUI's sideways shift for its depth.
+            float scale = StereoRenderer.guiScaleX();
+            float origin = StereoRenderer.guiAreaLeft();
             float shift = StereoRenderer.guiOffsetPixels();
-            int left = (int) Math.floor(x * scale + shift);
-            int right = (int) Math.ceil((x + width) * scale + shift);
-            // Rounding and the shift can push the edge past the eye target, which the render pass rejects.
-            x = Math.min(Math.max(0, left), StereoRenderer.eyeWidth());
-            width = Math.max(0, Math.min(right, StereoRenderer.eyeWidth()) - x);
-            float scaleY = StereoRenderer.eyeScaleY();
+            int left = (int) Math.floor(origin + x * scale + shift);
+            int right = (int) Math.ceil(origin + (x + width) * scale + shift);
+            // Rounding and the shift can push the edge past the eye's area, which would draw into the other eye
+            // (or be rejected by the render pass).
+            int areaLeft = StereoRenderer.guiAreaLeft();
+            int areaRight = areaLeft + StereoRenderer.guiAreaWidth();
+            x = Math.min(Math.max(areaLeft, left), areaRight);
+            width = Math.max(0, Math.min(right, areaRight) - x);
+            float scaleY = StereoRenderer.guiScaleY();
             int bottom = (int) Math.floor(y * scaleY);
             int top = (int) Math.ceil((y + height) * scaleY);
-            y = Math.min(Math.max(0, bottom), StereoRenderer.eyeHeight());
-            height = Math.max(0, Math.min(top, StereoRenderer.eyeHeight()) - y);
+            int areaHeight = StereoRenderer.guiAreaHeight();
+            y = Math.min(Math.max(0, bottom), areaHeight);
+            height = Math.max(0, Math.min(top, areaHeight) - y);
         }
         pass.enableScissor(x, y, width, height);
+    }
+
+    /** Drawing into the window, unclipped elements are still kept inside their eye's half. */
+    @Redirect(method = "executeDraw", at = @At(value = "INVOKE",
+        target = "Lcom/mojang/blaze3d/systems/RenderPass;disableScissor()V"))
+    private void parallaxTheater$keepInHalf(RenderPass pass) {
+        if (StereoRenderer.guiDrawsIntoWindow()) {
+            pass.enableScissor(StereoRenderer.guiAreaLeft(), 0, StereoRenderer.guiAreaWidth(), StereoRenderer.guiAreaHeight());
+        } else {
+            pass.disableScissor();
+        }
     }
 
     @Unique
@@ -136,7 +155,7 @@ public abstract class GuiRendererMixin {
         target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lnet/minecraft/client/renderer/Projection;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"))
     private GpuBufferSlice parallaxTheater$guiDepth(ProjectionMatrixBuffer buffer, Projection projection) {
         parallaxTheater$guiSlice = null;
-        if (!StereoRenderer.isRendering()) {
+        if (!StereoRenderer.isGuiPass()) {
             return buffer.getBuffer(projection);
         }
         Matrix4f matrix = projection.getMatrix(new Matrix4f());

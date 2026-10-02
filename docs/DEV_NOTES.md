@@ -22,9 +22,20 @@ shifted per eye for the GUI depth (`eyeGuiProjection`), the crosshair draw gets 
 distance (`eyeCrosshairProjection`), and the hand projection gets the eye offset plus the focus shift in clip space
 (`eyeHandProjection`).
 
-GUI depth (`StereoRenderer.updateGuiDepth`, 0.1.3): menus and other screens (not chat) sit on the screen surface
-(`menuDistance`, 0 = screen); the in-game HUD sits at the crosshair's (smoothed) depth (`hudFollowsAim`), eased over
-~120 ms, or at the fixed `hudDistance` with that off. A flat panel facing the viewer differs between the eyes only by a
+GUI depth (`StereoRenderer.updateGuiDepth`): menus and other screens (not chat) sit on the screen surface
+(`menuDistance`, 0 = screen). The in-game HUD (`hudDepth`, 0.1.4) sits on the nearest block outline or entity hitbox
+behind the hotbar and status bars (`hudSceneDepth`: 15 rays from the centre camera through a 5 x 3 grid over that
+screen area, depth along the view, 64 m, no fluids; nothing hit = crosshair depth), or at the crosshair's depth
+(`aim`, 0.1.3's behaviour), or at the fixed `hudDistance`; eased over ~120 ms. The user found 0.1.3's aim-locked
+hotbar still disorienting when a block covered the hotbar but not the crosshair.
+
+GUI target (0.1.4, `drawGuiOverWindow`): a GUI without blur or panorama (the in-game HUD, chat) is not drawn in the
+eye renders (`GameRendererMixin` skips `GuiRenderer.render`/`endFrame`) but into the window after the eyes are packed,
+once per half: `guiProjection` squeezes the GUI into the eye's half and `GuiRendererMixin` keeps every draw scissored
+to that half. Each eye's shift is rounded to whole pixels (`snapToPixels`). Before, at render scale 80 the crosshair's
+2-window-pixel lines landed on different pixel fractions in each eye (1 vs 2 px wide), which the user saw as a
+slightly doubled crosshair; now both eyes get identical pixels, just moved, and the HUD is sharp at any render scale.
+Menus (blur) still render into the eye targets, since the blur needs the eye's own world. A flat panel facing the viewer differs between the eyes only by a
 uniform sideways shift, so the shift is the whole stereo treatment; the problem in 0.1.2 was *which* depth. With the
 HUD fixed at 1.2 m (user's setting; measured -11 px per eye at FOV 90, focus 4 m, depth 81%) and the world at 4 m+,
 the hotbar was seen double whenever the eyes converged on the world/crosshair, and menus' full-screen backdrop stuck
@@ -35,6 +46,10 @@ Measured 0.1.3 (BSL, FOV 90, focus 4 m, depth 81%): menus, pause screen, creativ
 pixel-identical between the eyes apart from the blurred world behind; aimed at nothing (creative reach 5 m) hotbar
 +1.0 px, crosshair +0.7 px (formula +0.9); aimed at grass 0.99 m away hotbar -14.7 px, crosshair -14.2 px (formula
 -14.2). Chat keeps the HUD depth. The user's dev instance has E/Q swapped (Q = inventory, E = drop).
+
+Measured 0.1.4 (same settings): crosshair identical 2 px lines in both eyes; looking 55 degrees down the hotbar at
+-34 px over ground measured at -30 px; level view with a grass block under the hotbar's left side: hotbar -24 px
+(that block -24 px) while the crosshair rests at +2 px; pause menu and inventory 0 px; FPS unchanged (~225).
 
 Crosshair depth (`StereoRenderer.updateCrosshairDepth`): within reach, the distance (along the view) to the game's
 own `hitResult` (block outline shape, so grass counts; entity hitboxes); with nothing in reach, the edge of the
@@ -101,6 +116,9 @@ Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in 3D. Without s
 - Hand depth at 100% is strong (about -52 px per eye for the held item); fine in testing, lower it if it strains.
 - Menu background blur showed a thin bright line at the left edge of each eye; menus now sit on the screen surface
   (no shift) by default, which should remove it (not looked at closely yet).
-- Title screen / panorama with 0.1.3 not checked yet.
+- Title screen / panorama with 0.1.3+ not checked yet.
+- With the HUD well in front of the screen, GUI elements at the window edges (chat at the left) are cut off by a few
+  pixels in one eye (the shift pushes them past their half). One depth for the whole HUD; per-element depth would
+  need per-element vertex shifts.
 - Voxy uses its original pipeline's uniform *values* for both eyes (camera position etc. of that eye); only
   draw targets follow the eye. No visible issue found.
