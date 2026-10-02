@@ -7,6 +7,7 @@ import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
@@ -78,6 +79,8 @@ public final class StereoRenderer {
     /** The eye whose GUI is being drawn into the window right now ({@link #NONE} otherwise), and its pass (0 or 1). */
     private static int guiEye = NONE;
     private static int guiPass;
+    /** Width of the screen in GUI coordinates this frame (window width / GUI scale). */
+    private static float guiScaledWidth;
     /** Counts eye renders, so per-frame caches in other mods can tell one eye from the next. */
     private static int eyePassCounter;
 
@@ -168,6 +171,7 @@ public final class StereoRenderer {
         GameRendererAccessor access = (GameRendererAccessor) gameRenderer;
         windowWidth = width;
         windowHeight = height;
+        guiScaledWidth = window.guiScale > 0 ? (float) width / window.guiScale : 0f;
         eyeWidth = targetWidth;
         eyeHeight = targetHeight;
         worldProjectionScale = projection != null ? projection.m00()
@@ -515,13 +519,62 @@ public final class StereoRenderer {
 
     /** The GUI's sideways shift for the eye being drawn, in clip units of its area, rounded to whole pixels. */
     private static float guiOffset() {
-        float side = guiSide();
+        return guiOffset(guiSide());
+    }
+
+    /** The GUI's sideways shift for the eye on {@code side} (-1 left, +1 right), as {@link #guiOffset()}. */
+    private static float guiOffset(float side) {
         if (side == 0f) {
             return 0f;
         }
         float focus = StereoConfig.focusDistance();
         float inverseFocus = focus > 0f ? 1f / focus : 0f;
         return snapToPixels(side * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - guiInverseDistance));
+    }
+
+    /**
+     * Which part of the screen a GUI element belongs to, from its bounds in GUI coordinates: -1 for the left edge, +1
+     * for the right edge, 0 for the middle (or unknown). Elements count as edge elements when they start in the outer
+     * third of the screen and don't reach past the middle third, so a widget's parts (chat lines and their background)
+     * land in the same zone.
+     */
+    public static int guiZone(ScreenRectangle bounds) {
+        if (bounds == null || guiScaledWidth <= 0f) {
+            return 0;
+        }
+        float third = guiScaledWidth / 3f;
+        if (bounds.left() < third && bounds.right() <= 2f * third) {
+            return -1;
+        }
+        if (bounds.right() > 2f * third && bounds.left() >= third) {
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * Extra sideways shift, the same in both eyes, for GUI elements in an edge zone, in pixels of the GUI area.
+     *
+     * Each eye's GUI is shifted in opposite directions for depth. With the HUD in front of the screen the right eye's
+     * copy moves left, so anything at the left edge (the chat box) was pushed out of the right eye's half and cut off;
+     * the left eye lost the right edge the same way. Edge elements instead get the whole shift in the eye that moves
+     * them inwards: left-edge elements are shifted so neither eye moves them left, right-edge elements so neither eye
+     * moves them right. The disparity, and so the depth, is unchanged; the element just sits a few pixels further in.
+     */
+    public static float edgeShiftPixels(int zone) {
+        if (zone == 0 || !isGuiPass()) {
+            return 0f;
+        }
+        float left = guiOffset(-1f);
+        float right = guiOffset(1f);
+        float shift = zone < 0 ? -Math.min(left, right) : -Math.max(left, right);
+        return Math.round(shift * guiAreaWidth() / 2f);
+    }
+
+    /** {@link #edgeShiftPixels} in GUI coordinates, for moving vertices. */
+    public static float edgeShiftGui(int zone) {
+        float pixels = edgeShiftPixels(zone);
+        return pixels == 0f || guiAreaWidth() <= 0 ? 0f : pixels * guiScaledWidth / guiAreaWidth();
     }
 
     /**

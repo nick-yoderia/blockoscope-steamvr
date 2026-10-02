@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "parallax_theater",
-  "version": "0.1.4-alpha",
+  "version": "0.1.5-alpha",
   "name": "Parallax Theater",
   "description": "Renders Minecraft in half side-by-side stereoscopic 3D for viewing on a virtual screen, with no VR mod needed.",
   "authors": [

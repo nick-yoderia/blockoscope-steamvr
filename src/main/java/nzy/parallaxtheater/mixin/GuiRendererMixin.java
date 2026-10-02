@@ -8,7 +8,13 @@ import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.StagedVertexBuffer;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.renderer.state.gui.GlyphRenderState;
+import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import net.minecraft.client.renderer.state.gui.GuiTextRenderState;
+import nzy.parallaxtheater.ShiftedVertexConsumer;
 import nzy.parallaxtheater.StereoRenderer;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,7 +25,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The GUI is drawn once per eye from the same extracted state. It is prepared (text laid out into glyphs, items and
@@ -56,6 +65,49 @@ public abstract class GuiRendererMixin {
         if (!StereoRenderer.isSecondGuiPass()) {
             prepare();
         }
+    }
+
+    // --- Edge elements (see StereoRenderer.edgeShiftPixels): moved inwards in both eyes while their meshes are built.
+
+    /** Screen zone of each text, by its pose (each text gets its own copy, and its glyphs keep that copy). */
+    @Unique
+    private final Map<Object, Integer> parallaxTheater$textZones = new IdentityHashMap<>();
+    @Unique
+    private final ShiftedVertexConsumer parallaxTheater$shifted = new ShiftedVertexConsumer();
+    @Unique
+    private ScreenRectangle parallaxTheater$scissorRectangle;
+
+    /** Glyphs have no bounds of their own, so a text's zone is worked out from the whole text while it is laid out. */
+    @Redirect(method = "prepareText", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/state/gui/GuiRenderState;forEachText(Ljava/util/function/Consumer;)V"))
+    private void parallaxTheater$noteTextZones(GuiRenderState state, Consumer<GuiTextRenderState> layout) {
+        parallaxTheater$textZones.clear();
+        if (!StereoRenderer.isGuiPass()) {
+            state.forEachText(layout);
+            return;
+        }
+        state.forEachText(text -> {
+            parallaxTheater$textZones.merge(text.pose, StereoRenderer.guiZone(text.bounds()),
+                (a, b) -> a.equals(b) ? a : 0);
+            layout.accept(text);
+        });
+    }
+
+    @Redirect(method = "addElementToMesh", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/state/gui/GuiElementRenderState;buildVertices(Lcom/mojang/blaze3d/vertex/VertexConsumer;)V"))
+    private void parallaxTheater$shiftEdgeElement(GuiElementRenderState element, VertexConsumer consumer) {
+        float shift = 0f;
+        if (StereoRenderer.isGuiPass()) {
+            int zone = element instanceof GlyphRenderState glyph
+                ? parallaxTheater$textZones.getOrDefault(glyph.pose(), 0) : StereoRenderer.guiZone(element.bounds());
+            shift = StereoRenderer.edgeShiftGui(zone);
+        }
+        element.buildVertices(shift == 0f ? consumer : parallaxTheater$shifted.set(consumer, shift));
+    }
+
+    @Inject(method = "enableScissor", at = @At("HEAD"))
+    private void parallaxTheater$noteScissor(ScreenRectangle rectangle, RenderPass pass, CallbackInfo ci) {
+        parallaxTheater$scissorRectangle = rectangle;
     }
 
     @Redirect(method = "render", at = @At(value = "INVOKE",
@@ -112,7 +164,8 @@ public abstract class GuiRendererMixin {
             // Squeeze to the eye's half and follow the GUI's sideways shift for its depth.
             float scale = StereoRenderer.guiScaleX();
             float origin = StereoRenderer.guiAreaLeft();
-            float shift = StereoRenderer.guiOffsetPixels();
+            float shift = StereoRenderer.guiOffsetPixels()
+                + StereoRenderer.edgeShiftPixels(StereoRenderer.guiZone(parallaxTheater$scissorRectangle));
             int left = (int) Math.floor(origin + x * scale + shift);
             int right = (int) Math.ceil(origin + (x + width) * scale + shift);
             // Rounding and the shift can push the edge past the eye's area, which would draw into the other eye

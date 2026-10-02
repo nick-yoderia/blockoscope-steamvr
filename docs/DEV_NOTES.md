@@ -117,8 +117,14 @@ Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in 3D. Without s
 - Menu background blur showed a thin bright line at the left edge of each eye; menus now sit on the screen surface
   (no shift) by default, which should remove it (not looked at closely yet).
 - Title screen / panorama with 0.1.3+ not checked yet.
-- With the HUD well in front of the screen, GUI elements at the window edges (chat at the left) are cut off by a few
-  pixels in one eye (the shift pushes them past their half). One depth for the whole HUD; per-element depth would
-  need per-element vertex shifts.
+- Edge elements (0.1.5, `StereoRenderer.edgeShiftPixels`): with the HUD in front of the screen the right eye's copy
+  moves left, so the chat box was cut off at the left edge in that eye (and right-edge elements in the left eye).
+  Elements in an edge zone (start in the outer third, don't reach past the middle third; text classified as a whole
+  via its pose object, since glyphs have no bounds) now get a common sideways shift baked into their vertices at
+  prepare time (`ShiftedVertexConsumer`), so the eye that would move them outwards leaves them in place and the other
+  eye takes the whole disparity. Scissor rectangles get the same shift. Measured: chat, effect icons and hotbar all
+  -8 px, chat at its vanilla position in the right eye and 8 px further in in the left. Full-width elements (the chat
+  input bar's background) stay centred and still lose a few pixels at both edges.
+- One depth for the whole HUD (per-element depth would need per-element shifts per eye).
 - Voxy uses its original pipeline's uniform *values* for both eyes (camera position etc. of that eye); only
   draw targets follow the eye. No visible issue found.
