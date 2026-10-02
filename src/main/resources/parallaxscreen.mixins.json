@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "nzy.parallaxscreen.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "CameraAccessor",
+    "GameRendererAccessor",
+    "GameRendererMixin",
+    "GuiMixin",
+    "GuiRendererMixin",
+    "GuiRenderStateAccessor",
+    "ItemInHandRendererMixin",
+    "ItemPickupParticleStateMixin",
+    "KeyboardHandlerMixin",
+    "LevelRendererMixin",
+    "MinecraftMixin",
+    "QuadParticleRenderStateMixin",
+    "SkyRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

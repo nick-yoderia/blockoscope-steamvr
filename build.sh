@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds build/parallax-theater-<version>.jar with the JDK that ships with Prism Launcher.
+# Builds build/parallax-screen-<version>.jar with the JDK that ships with Prism Launcher.
 # Compiles against Mixin, LWJGL, JOML, the Minecraft client jar, Fabric Loader, Cloth Config, Mod Menu and
 # Iris (none are bundled; Iris support only loads when Iris is installed).
 set -euo pipefail
@@ -33,5 +33,5 @@ VERSION="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' src/main/resources/fabric.mod
 rm -rf build && mkdir -p build/classes
 "$JDK/javac.exe" --release 17 -Xlint:all,-classfile -cp "$CP" -d build/classes $(find src/main/java -name '*.java')
 cp -r src/main/resources/. build/classes/
-"$JDK/jar.exe" --create --file "build/parallax-theater-$VERSION.jar" -C build/classes .
-echo "Built build/parallax-theater-$VERSION.jar"
+"$JDK/jar.exe" --create --file "build/parallax-screen-$VERSION.jar" -C build/classes .
+echo "Built build/parallax-screen-$VERSION.jar"

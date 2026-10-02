@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "id": "parallax_theater",
-  "version": "0.1.5-alpha",
-  "name": "Parallax Theater",
-  "description": "Renders Minecraft in half side-by-side stereoscopic 3D for viewing on a virtual screen, with no VR mod needed.",
+  "id": "parallax_screen",
+  "version": "0.1.0-alpha",
+  "name": "Parallax Screen",
+  "description": "Renders Minecraft in stereoscopic 3D straight onto a virtual screen in SteamVR, at full resolution per eye, with no monitor or VR mod needed.",
   "authors": [
     "Nick Y"
   ],
   "contact": {
-    "sources": "https://github.com/nick-yoderia/parallax-theater",
-    "issues": "https://github.com/nick-yoderia/parallax-theater/issues"
+    "sources": "https://github.com/nick-yoderia/parallax-screen",
+    "issues": "https://github.com/nick-yoderia/parallax-screen/issues"
   },
   "license": "MIT",
-  "icon": "assets/parallax_theater/icon.png",
+  "icon": "assets/parallax_screen/icon.png",
   "environment": "client",
   "entrypoints": {
     "modmenu": [
-      "nzy.parallaxtheater.StereoModMenu"
+      "nzy.parallaxscreen.StereoModMenu"
     ]
   },
   "mixins": [
-    "parallaxtheater.mixins.json",
-    "parallaxtheater.compat.mixins.json"
+    "parallaxscreen.mixins.json",
+    "parallaxscreen.compat.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.15.0",
