@@ -102,9 +102,10 @@ public final class VrScreen {
     }
 
     /**
-     * Connects to SteamVR and creates the overlay, off the render thread: starting SteamVR can take several seconds,
-     * which would freeze the game. Only connects when a headset is there, since connecting launches SteamVR, which
-     * without a headset only shows an error; so playing on the monitor never starts it.
+     * Connects to SteamVR and creates the overlay, off the render thread (connecting can take a moment). Only connects
+     * while SteamVR is already running: connecting would otherwise launch it, so playing on the monitor would start
+     * SteamVR, and quitting SteamVR mid-game would bring it straight back. Starting SteamVR (as you do to use the
+     * headset) is enough; the screen appears within a few seconds.
      */
     private static void connect() {
         try {
@@ -113,8 +114,8 @@ public final class VrScreen {
                 logOnce("SteamVR is not installed; showing side-by-side in the window");
                 return;
             }
-            if (!OpenVrApi.isHmdPresent()) {
-                logOnce("No VR headset found; showing side-by-side in the window (checking again every few seconds)");
+            if (!steamVrRunning()) {
+                logOnce("SteamVR is not running; showing side-by-side in the window until it starts");
                 return;
             }
             String error = OpenVrApi.init();
@@ -135,6 +136,12 @@ public final class VrScreen {
         } finally {
             connecting = false;
         }
+    }
+
+    /** True while SteamVR's server process runs (looked up without loading or starting anything of SteamVR's). */
+    private static boolean steamVrRunning() {
+        return ProcessHandle.allProcesses().anyMatch(process -> process.info().command()
+            .map(command -> command.toLowerCase(java.util.Locale.ROOT).endsWith("vrserver.exe")).orElse(false));
     }
 
     /** Back on the render thread once connected: sets the screen up and shows it. */

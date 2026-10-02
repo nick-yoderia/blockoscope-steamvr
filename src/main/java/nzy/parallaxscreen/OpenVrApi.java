@@ -66,7 +66,6 @@ final class OpenVrApi {
     private static SymbolLookup library;
 
     private static MethodHandle isRuntimeInstalled;
-    private static MethodHandle isHmdPresent;
     private static MethodHandle initInternal2;
     private static MethodHandle shutdownInternal;
     private static MethodHandle initErrorDescription;
@@ -112,7 +111,6 @@ final class OpenVrApi {
         applyDevelopmentEnvironment();
         SymbolLookup lookup = SymbolLookup.libraryLookup(dll, Arena.global());
         isRuntimeInstalled = export(lookup, "VR_IsRuntimeInstalled", FunctionDescriptor.of(JAVA_BOOLEAN));
-        isHmdPresent = export(lookup, "VR_IsHmdPresent", FunctionDescriptor.of(JAVA_BOOLEAN));
         initInternal2 = export(lookup, "VR_InitInternal2", FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS));
         shutdownInternal = export(lookup, "VR_ShutdownInternal", FunctionDescriptor.ofVoid());
         initErrorDescription = export(lookup, "VR_GetVRInitErrorAsEnglishDescription", FunctionDescriptor.of(ADDRESS, JAVA_INT));
@@ -161,10 +159,6 @@ final class OpenVrApi {
 
     static boolean isRuntimeInstalled() throws Throwable {
         return (boolean) isRuntimeInstalled.invokeExact();
-    }
-
-    static boolean isHmdPresent() throws Throwable {
-        return (boolean) isHmdPresent.invokeExact();
     }
 
     /** Starts OpenVR as an overlay application and looks up the interfaces; returns null or an error message. */
