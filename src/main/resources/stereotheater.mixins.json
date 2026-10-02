@@ -4,13 +4,16 @@
   "package": "nzy.stereotheater.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "CameraAccessor",
     "GameRendererAccessor",
     "GameRendererMixin",
     "GuiMixin",
     "GuiRendererMixin",
+    "ItemPickupParticleStateMixin",
     "KeyboardHandlerMixin",
     "LevelRendererMixin",
-    "MinecraftMixin"
+    "MinecraftMixin",
+    "QuadParticleRenderStateMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.client.Camera;
+import nzy.stereotheater.mixin.CameraAccessor;
 import nzy.stereotheater.mixin.GameRendererAccessor;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -46,6 +48,13 @@ public final class StereoRenderer {
     private static String lastReason = "";
     /** Horizontal scale of the world projection (m00) this frame, used to give the GUI matching disparity. */
     private static float worldProjectionScale = 1f;
+    /**
+     * Centre camera minus the current eye, in world space. Some things (particles) are positioned relative to the
+     * centre camera when the frame is extracted; adding this moves them to where they belong for the eye.
+     */
+    private static final Vector3f eyeShift = new Vector3f();
+    /** Counts eye renders, so per-frame caches in other mods can tell one eye from the next. */
+    private static int eyePassCounter;
 
     private StereoRenderer() {}
 
@@ -76,6 +85,16 @@ public final class StereoRenderer {
     /** Vertical factor from window pixels to eye target pixels while an eye renders (1 otherwise). */
     public static float eyeScaleY() {
         return eye == NONE || windowHeight <= 0 ? 1f : (float) eyeHeight / windowHeight;
+    }
+
+    /** Increases every time an eye starts rendering. */
+    public static int eyePassCounter() {
+        return eyePassCounter;
+    }
+
+    /** See {@link #eyeShift}; zero outside the stereo render. */
+    public static Vector3f eyeShift() {
+        return eyeShift;
     }
 
     public static int eyeWidth() {
@@ -116,7 +135,9 @@ public final class StereoRenderer {
         ensureTargets(targetWidth, targetHeight);
 
         CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
+        Camera mainCamera = gameRenderer.mainCamera();
         Vec3 centre = camera.pos;
+        Vec3 mainCentre = mainCamera.position();
         Matrix4f projection = camera.projectionMatrix == null ? null : new Matrix4f(camera.projectionMatrix);
         GameRendererAccessor access = (GameRendererAccessor) gameRenderer;
         windowWidth = width;
@@ -129,13 +150,26 @@ public final class StereoRenderer {
             for (pass = 0; pass < 2; pass++) {
                 int i = RIGHT_FIRST ? 1 - pass : pass;
                 eye = i;
+                eyePassCounter++;
                 access.stereoTheater$setMainRenderTarget(targets[i]);
                 placeEye(camera, centre, projection, i);
+                // Mods that read the camera object rather than the extracted state (Iris's camera position uniform
+                // and shadow pass, for one) must see the eye too, or shadows and lighting sit at the wrong depth.
+                // Terrain culling has already run during extraction, so moving it here costs nothing.
+                if (centre != null && mainCentre != null) {
+                    ((CameraAccessor) mainCamera).stereoTheater$setPosition(mainCentre.add(camera.pos.subtract(centre)));
+                    eyeShift.set((float) (centre.x - camera.pos.x), (float) (centre.y - camera.pos.y),
+                        (float) (centre.z - camera.pos.z));
+                }
                 gameRenderer.render(deltaTracker, renderLevel);
             }
         } finally {
             eye = NONE;
+            eyeShift.zero();
             access.stereoTheater$setMainRenderTarget(main);
+            if (mainCentre != null) {
+                ((CameraAccessor) mainCamera).stereoTheater$setPosition(mainCentre);
+            }
             camera.pos = centre;
             if (projection != null) {
                 camera.projectionMatrix.set(projection);
@@ -153,6 +187,9 @@ public final class StereoRenderer {
     private static long lastFpsLog;
 
     private static void logFps() {
+        if (!StereoDebug.ENABLED) {
+            return;
+        }
         long now = System.currentTimeMillis();
         if (now - lastFpsLog >= 5000L) {
             lastFpsLog = now;

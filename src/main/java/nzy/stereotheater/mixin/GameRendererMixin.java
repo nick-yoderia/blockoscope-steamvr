@@ -8,9 +8,13 @@ import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderBuffers;
 import net.minecraft.client.renderer.fog.FogRenderer;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import com.mojang.blaze3d.vertex.PoseStack;
+import nzy.stereotheater.StereoConfig;
 import nzy.stereotheater.StereoRenderer;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -22,6 +26,49 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  */
 @Mixin(value = GameRenderer.class, remap = false)
 public abstract class GameRendererMixin {
+    @Shadow
+    private void bobView(CameraRenderState cameraState, PoseStack poseStack) {
+        throw new AssertionError();
+    }
+
+    @Shadow
+    private void bobHurt(CameraRenderState cameraState, PoseStack poseStack) {
+        throw new AssertionError();
+    }
+
+    // --- Comfort: on a fixed virtual screen, a camera that sways, rolls or warps is hard to watch in 3D (Vivecraft
+    // turns these off for the same reason). Only the camera is affected; the hand still bobs as in vanilla.
+
+    @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/GameRenderer;bobView(Lnet/minecraft/client/renderer/state/level/CameraRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V"))
+    private void stereoTheater$cameraBob(GameRenderer self, CameraRenderState cameraState, PoseStack poseStack) {
+        if (!StereoRenderer.isRendering() || StereoConfig.cameraBobbing()) {
+            bobView(cameraState, poseStack);
+        }
+    }
+
+    @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lnet/minecraft/client/renderer/state/level/CameraRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V"))
+    private void stereoTheater$cameraTilt(GameRenderer self, CameraRenderState cameraState, PoseStack poseStack) {
+        if (!StereoRenderer.isRendering() || StereoConfig.damageTilt()) {
+            bobHurt(cameraState, poseStack);
+        }
+    }
+
+    /** Nausea and portal warp strength (the larger of the two effects). */
+    @Redirect(method = "renderLevel", at = @At(value = "INVOKE", target = "Ljava/lang/Math;max(FF)F"))
+    private float stereoTheater$calmWarpStrength(float portal, float nausea) {
+        float strength = Math.max(portal, nausea);
+        return StereoRenderer.isRendering() ? strength * StereoConfig.warpPercent() / 100f : strength;
+    }
+
+    /** Nausea and portal warp spin, slowed along with the strength. */
+    @ModifyArg(method = "renderLevel", index = 0, at = @At(value = "INVOKE",
+        target = "Lorg/joml/Matrix4f;rotate(FLorg/joml/Vector3fc;)Lorg/joml/Matrix4f;"))
+    private float stereoTheater$calmWarpSpin(float angle) {
+        return StereoRenderer.isRendering() ? angle * Math.max(0.2f, StereoConfig.warpPercent() / 100f) : angle;
+    }
+
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/GameRenderer;resize(II)V"))
     private void stereoTheater$keepEyeSize(GameRenderer self, int width, int height) {

@@ -8,7 +8,8 @@
     "iris.IrisFrameCounterMixin",
     "iris.IrisPipelineManagerMixin",
     "iris.IrisRenderTargetsMixin",
-    "iris.IrisTimerMixin"
+    "iris.IrisTimerMixin",
+    "sodium.SodiumUniformBufferManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

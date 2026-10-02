@@ -50,7 +50,7 @@ public final class StereoConfigScreen {
 
         depth.addEntry(entries.startIntSlider(Component.literal("Focus distance"),
                 Math.round(StereoConfig.focusDistance()), 0, FOCUS_MAX_METRES)
-            .setDefaultValue(4)
+            .setDefaultValue(10)
             .setTextGetter(value -> Component.literal(value == 0 ? "Infinity" : value + " m"))
             .setTooltip(Component.literal("Distance shown on the screen."))
             .setSaveConsumer(value -> StereoConfig.setFocusDistance(value))
@@ -60,6 +60,27 @@ public final class StereoConfigScreen {
             .setDefaultValue(false)
             .setTooltip(Component.literal("Use if depth looks inside-out."))
             .setSaveConsumer(StereoConfig::setSwapEyes)
+            .build());
+
+        // --- Comfort ---
+        ConfigCategory comfort = builder.getOrCreateCategory(Component.literal("Comfort"));
+        comfort.addEntry(entries.startTextDescription(Component.literal(
+            "Camera motion that is hard to watch in 3D. Only applies while 3D is on.")).build());
+        comfort.addEntry(entries.startBooleanToggle(Component.literal("Camera bobbing"), StereoConfig.cameraBobbing())
+            .setDefaultValue(false)
+            .setTooltip(Component.literal("Walking sway. The hand bobs either way."))
+            .setSaveConsumer(StereoConfig::setCameraBobbing)
+            .build());
+        comfort.addEntry(entries.startBooleanToggle(Component.literal("Damage tilt"), StereoConfig.damageTilt())
+            .setDefaultValue(false)
+            .setTooltip(Component.literal("Camera roll when hurt or dying."))
+            .setSaveConsumer(StereoConfig::setDamageTilt)
+            .build());
+        comfort.addEntry(entries.startIntSlider(Component.literal("Nausea & portal warp"), StereoConfig.warpPercent(), 0, 100)
+            .setDefaultValue(40)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Off" : value + "%"))
+            .setTooltip(Component.literal("% of vanilla's warp."))
+            .setSaveConsumer(StereoConfig::setWarpPercent)
             .build());
 
         // --- HUD ---

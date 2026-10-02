@@ -21,6 +21,9 @@ public final class StereoConfig {
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
         "handDepthPercent: depth of your hand and held item as a % of the world's (0 = on the screen surface)",
         "hudDistance: metres at which the HUD and menus float; 0 = on the screen surface",
+        "cameraBobbing: vanilla view bobbing of the camera while walking (the hand still bobs either way)",
+        "damageTilt: tilt the camera when hurt or dying",
+        "warpPercent: strength of the nausea and portal warp, as a % of vanilla's (on top of Distortion Effects)",
         "swapEyes: put the right eye on the left half (for viewers that expect cross-eyed order)",
         "hideCursor: hide the Windows cursor over the game window and draw one in both eyes instead",
         "confineCursor: keep the cursor inside the game window while it is focused");
@@ -28,10 +31,13 @@ public final class StereoConfig {
     private static boolean enabled = true;
     private static int renderScale = 100;
     private static int depthPercent = 100;
-    private static float focusDistance = 4f;
+    private static float focusDistance = 10f;
     private static int handDepthPercent = 100;
     private static float hudDistance = 1.35f;
     private static boolean swapEyes = false;
+    private static boolean cameraBobbing = false;
+    private static boolean damageTilt = false;
+    private static int warpPercent = 40;
     private static boolean hideCursor = true;
     private static boolean confineCursor = true;
 
@@ -48,6 +54,9 @@ public final class StereoConfig {
     public static int handDepthPercent() { return handDepthPercent; }
     public static float hudDistance() { return hudDistance; }
     public static boolean swapEyes() { return swapEyes; }
+    public static boolean cameraBobbing() { return cameraBobbing; }
+    public static boolean damageTilt() { return damageTilt; }
+    public static int warpPercent() { return warpPercent; }
     public static boolean hideCursor() { return hideCursor; }
     public static boolean confineCursor() { return confineCursor; }
 
@@ -58,6 +67,9 @@ public final class StereoConfig {
     public static void setHandDepthPercent(int value) { handDepthPercent = Math.max(0, Math.min(200, value)); }
     public static void setHudDistance(float value) { hudDistance = Math.max(0f, value); }
     public static void setSwapEyes(boolean value) { swapEyes = value; }
+    public static void setCameraBobbing(boolean value) { cameraBobbing = value; }
+    public static void setDamageTilt(boolean value) { damageTilt = value; }
+    public static void setWarpPercent(int value) { warpPercent = Math.max(0, Math.min(100, value)); }
     public static void setHideCursor(boolean value) { hideCursor = value; }
     public static void setConfineCursor(boolean value) { confineCursor = value; }
 
@@ -78,10 +90,13 @@ public final class StereoConfig {
         enabled = parseBoolean(props.getProperty("enabled"), true);
         setRenderScale((int) Math.round(parseDouble(props.getProperty("renderScale"), 100)));
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
-        setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 4));
+        setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 10));
         setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), 100)));
         setHudDistance((float) parseDouble(props.getProperty("hudDistance"), 1.35));
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
+        cameraBobbing = parseBoolean(props.getProperty("cameraBobbing"), false);
+        damageTilt = parseBoolean(props.getProperty("damageTilt"), false);
+        setWarpPercent((int) Math.round(parseDouble(props.getProperty("warpPercent"), 40)));
         hideCursor = parseBoolean(props.getProperty("hideCursor"), true);
         confineCursor = parseBoolean(props.getProperty("confineCursor"), true);
         save(); // always list every setting
@@ -96,6 +111,9 @@ public final class StereoConfig {
         out.setProperty("handDepthPercent", String.valueOf(handDepthPercent));
         out.setProperty("hudDistance", String.valueOf(hudDistance));
         out.setProperty("swapEyes", String.valueOf(swapEyes));
+        out.setProperty("cameraBobbing", String.valueOf(cameraBobbing));
+        out.setProperty("damageTilt", String.valueOf(damageTilt));
+        out.setProperty("warpPercent", String.valueOf(warpPercent));
         out.setProperty("hideCursor", String.valueOf(hideCursor));
         out.setProperty("confineCursor", String.valueOf(confineCursor));
         try {
