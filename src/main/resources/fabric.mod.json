@@ -12,7 +12,13 @@
     "issues": "https://github.com/nick-yoderia/nullvr-theater/issues"
   },
   "license": "MIT",
+  "icon": "assets/stereo_theater/icon.png",
   "environment": "client",
+  "entrypoints": {
+    "modmenu": [
+      "nzy.stereotheater.StereoModMenu"
+    ]
+  },
   "mixins": [
     "stereotheater.mixins.json"
   ],
@@ -22,5 +28,9 @@
   },
   "breaks": {
     "vivecraft": "*"
+  },
+  "recommends": {
+    "modmenu": "*",
+    "cloth-config": "*"
   }
 }

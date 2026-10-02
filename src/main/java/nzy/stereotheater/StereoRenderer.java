@@ -145,7 +145,8 @@ public final class StereoRenderer {
      * eye offset and focus shear as the world, so it has real depth instead of sitting on the screen surface.
      */
     public static Matrix4f eyeHandProjection(Matrix4f projection) {
-        float halfIpd = StereoConfig.ipd() / 2f;
+        // Scaling the eye offset and the shear together scales the hand's disparity (0 = on the screen surface).
+        float halfIpd = StereoConfig.ipd() / 2f * StereoConfig.handDepthPercent() / 100f;
         float side = side();
         float focus = StereoConfig.focusDistance();
         if (focus > 0f) {
