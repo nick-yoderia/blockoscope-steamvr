@@ -10,15 +10,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.client.Camera;
 import nzy.parallaxtheater.mixin.CameraAccessor;
 import nzy.parallaxtheater.mixin.GameRendererAccessor;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
 /**
@@ -143,7 +140,7 @@ public final class StereoRenderer {
 
         CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
         Camera mainCamera = gameRenderer.mainCamera();
-        updateCrosshairDepth(mainCamera);
+        updateCrosshairDepth();
         Vec3 centre = camera.pos;
         Vec3 mainCentre = mainCamera.position();
         Matrix4f projection = camera.projectionMatrix == null ? null : new Matrix4f(camera.projectionMatrix);
@@ -260,30 +257,15 @@ public final class StereoRenderer {
         return new Matrix4f().translation(offset, 0f, 0f).mul(projection);
     }
 
-    /** How far away the crosshair's target is: the block or entity it picks, or else a longer block raycast. */
-    private static void updateCrosshairDepth(Camera camera) {
-        Minecraft minecraft = Minecraft.getInstance();
-        float target = 0f;
-        if (camera != null && minecraft.level != null && minecraft.player != null) {
-            Vec3 from = camera.position();
-            Vector3fc forward = camera.forwardVector();
-            Vec3 direction = new Vec3(forward.x(), forward.y(), forward.z());
-            HitResult hit = minecraft.hitResult;
-            if (hit == null || hit.getType() == HitResult.Type.MISS) {
-                double reach = Math.min(512.0, minecraft.options.getEffectiveRenderDistance() * 16.0);
-                hit = minecraft.level.clip(new ClipContext(from, from.add(direction.scale(reach)), ClipContext.Block.OUTLINE,
-                    ClipContext.Fluid.ANY, minecraft.player));
-            }
-            if (hit != null && hit.getType() != HitResult.Type.MISS) {
-                double distance = hit.getLocation().subtract(from).dot(direction);
-                target = (float) (1.0 / Math.max(0.3, distance));
-            }
-        }
+    /** Eases the crosshair towards the depth of what it points at (see {@link CrosshairDepth}). */
+    private static void updateCrosshairDepth() {
         long now = System.nanoTime();
         float seconds = lastCrosshairNanos == 0L ? 1f : (now - lastCrosshairNanos) / 1.0e9f;
         lastCrosshairNanos = now;
-        // Ease towards the new depth over a few frames, so the crosshair doesn't jitter along block edges.
-        crosshairInverseDistance += (target - crosshairInverseDistance) * (1f - (float) Math.exp(-seconds / 0.04f));
+        float focus = StereoConfig.focusDistance();
+        float target = CrosshairDepth.targetInverseDistance(seconds, focus > 0f ? 1f / focus : 0f);
+        // A few frames of easing, so the crosshair doesn't jitter along block edges.
+        crosshairInverseDistance += (target - crosshairInverseDistance) * (1f - (float) Math.exp(-seconds / 0.06f));
     }
 
     /** The GUI's sideways shift in this eye, in clip space. */

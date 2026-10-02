@@ -121,6 +121,18 @@ public abstract class GameRendererMixin {
         }
     }
 
+    /** The world is drawn and its depth not yet cleared for the hand: read the depth under the crosshair. */
+    @org.spongepowered.asm.mixin.injection.Inject(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lcom/mojang/blaze3d/systems/CommandEncoder;clearDepthTexture(Lcom/mojang/blaze3d/textures/GpuTexture;D)V"))
+    private void parallaxTheater$crosshairDepth(net.minecraft.client.DeltaTracker deltaTracker,
+                                                org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        if (StereoRenderer.isFirstEye() && StereoConfig.crosshairAtTarget()) {
+            GameRenderer self = (GameRenderer) (Object) this;
+            nzy.parallaxtheater.CrosshairDepth.request(self.mainRenderTarget(),
+                self.gameRenderState().levelRenderState.cameraRenderState.projectionMatrix);
+        }
+    }
+
     @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lnet/minecraft/client/renderer/Projection;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"))
     private GpuBufferSlice parallaxTheater$handProjection(ProjectionMatrixBuffer buffer, Projection projection) {

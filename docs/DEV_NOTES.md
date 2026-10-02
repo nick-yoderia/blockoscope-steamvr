@@ -21,6 +21,18 @@ The GUI is extracted once and drawn into both eyes; its projection is shifted pe
 (`eyeGuiProjection`), the crosshair draw gets its own projection for the aimed distance (`eyeCrosshairProjection`),
 and the hand projection gets the eye offset plus the focus shift in clip space (`eyeHandProjection`).
 
+Crosshair depth (`CrosshairDepth`): after the first eye's world render (before the hand clears depth), the centre
+pixel of the eye's depth texture is copied with `glGetTextureSubImage` into a pixel-pack buffer and read a frame or
+two later after a fence (never stalls). Blaze3D's `copyTextureToBuffer` can't be used: it attaches the source as a
+colour attachment, so depth reads back 0. Conventions: vanilla uses reversed depth straight from clip z (far = 0);
+with a shader pack Iris (and Voxy) use a conventional projection (m22 near -1) stored as `clip * 0.5 + 0.5`, so
+distance = `m32 / (clip + m22)` with `clip = 2d - 1` there. With a shader pack Voxy's terrain is not in that depth
+buffer, so `VoxyCrosshairDepthMixin` adds Voxy's own depth texture as a fallback when the world's shows sky. Over real
+sky the crosshair holds the last surface and eases to the screen surface over 1.5 s.
+
+Hand position (`ItemInHandRendererMixin`, 3D only): the arm's pose is translated forward (`handReach`, default
+30 cm), optionally up/inward, right after `submitArmWithItem` pushes its pose (used by vanilla and Iris).
+
 Depth math: an eye at x = side * ipd/2 sees a point straight ahead at distance d shifted by
 `m00 * ipd/2 * (1/d)` in NDC; the focus shear subtracts `m00 * ipd/2 * (1/focus)`. With a 70 degree vertical FOV at
 16:9 and 1280 px per eye, disparity in eye pixels is `-32.9 * (1/d - 1/focus)` (negative = in front of the screen).

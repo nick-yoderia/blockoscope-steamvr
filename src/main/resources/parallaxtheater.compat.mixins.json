@@ -11,6 +11,7 @@
     "iris.IrisRenderTargetsMixin",
     "iris.IrisTimerMixin",
     "sodium.SodiumUniformBufferManagerMixin",
+    "voxy.VoxyCrosshairDepthMixin",
     "voxy.VoxyIrisPipelineMixin",
     "voxy.VoxyViewportSelectorMixin"
   ],

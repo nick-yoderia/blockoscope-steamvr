@@ -100,6 +100,27 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setCrosshairAtTarget)
             .build());
 
+        hud.addEntry(entries.startIntSlider(Component.literal("Arm reach"), StereoConfig.handReach(), 0, 60)
+            .setDefaultValue(30)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Vanilla" : "+" + value + " cm"))
+            .setTooltip(Component.literal("Longer arm: hand further out (3D only)."))
+            .setSaveConsumer(StereoConfig::setHandReach)
+            .build());
+
+        hud.addEntry(entries.startIntSlider(Component.literal("Hand raise"), StereoConfig.handRaise(), 0, 40)
+            .setDefaultValue(0)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Vanilla" : value + " cm"))
+            .setTooltip(Component.literal("Lifts the hand into view (3D only)."))
+            .setSaveConsumer(StereoConfig::setHandRaise)
+            .build());
+
+        hud.addEntry(entries.startIntSlider(Component.literal("Hand inward"), StereoConfig.handInward(), 0, 40)
+            .setDefaultValue(0)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Vanilla" : value + " cm"))
+            .setTooltip(Component.literal("Moves the hand towards the middle (3D only)."))
+            .setSaveConsumer(StereoConfig::setHandInward)
+            .build());
+
         hud.addEntry(entries.startIntSlider(Component.literal("Hand depth"), StereoConfig.handDepthPercent(), 0, 200)
             .setDefaultValue(100)
             .setTextGetter(value -> Component.literal(value == 0 ? "Screen" : value + "%"))

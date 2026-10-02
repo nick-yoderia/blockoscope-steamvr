@@ -21,6 +21,9 @@ public final class StereoConfig {
         "renderScale: % of the half-window resolution each eye renders at (lower = faster, above 100 = sharper)",
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
+        "handReach: centimetres the hand and held item are pushed forward in 3D, as if the arm were longer",
+        "handRaise: centimetres the hand and held item are raised in 3D (more of them in view)",
+        "handInward: centimetres the hand and held item are moved towards the middle in 3D",
         "handDepthPercent: depth of your hand and held item as a % of the world's (0 = on the screen surface)",
         "crosshairAtTarget: show the crosshair at the depth of what it points at (false = at the HUD distance)",
         "hudDistance: metres at which the HUD and menus float; 0 = on the screen surface",
@@ -36,6 +39,9 @@ public final class StereoConfig {
     private static int depthPercent = 100;
     private static float focusDistance = 10f;
     private static int handDepthPercent = 100;
+    private static int handReach = 30;
+    private static int handRaise = 0;
+    private static int handInward = 0;
     private static float hudDistance = 1.35f;
     private static boolean crosshairAtTarget = true;
     private static boolean swapEyes = false;
@@ -56,6 +62,9 @@ public final class StereoConfig {
     public static int depthPercent() { return depthPercent; }
     public static float focusDistance() { return focusDistance; }
     public static int handDepthPercent() { return handDepthPercent; }
+    public static int handReach() { return handReach; }
+    public static int handRaise() { return handRaise; }
+    public static int handInward() { return handInward; }
     public static float hudDistance() { return hudDistance; }
     public static boolean crosshairAtTarget() { return crosshairAtTarget; }
     public static boolean swapEyes() { return swapEyes; }
@@ -70,6 +79,9 @@ public final class StereoConfig {
     public static void setDepthPercent(int value) { depthPercent = Math.max(0, Math.min(300, value)); }
     public static void setFocusDistance(float value) { focusDistance = Math.max(0f, value); }
     public static void setHandDepthPercent(int value) { handDepthPercent = Math.max(0, Math.min(200, value)); }
+    public static void setHandReach(int value) { handReach = Math.max(0, Math.min(60, value)); }
+    public static void setHandRaise(int value) { handRaise = Math.max(0, Math.min(40, value)); }
+    public static void setHandInward(int value) { handInward = Math.max(0, Math.min(40, value)); }
     public static void setHudDistance(float value) { hudDistance = Math.max(0f, value); }
     public static void setCrosshairAtTarget(boolean value) { crosshairAtTarget = value; }
     public static void setSwapEyes(boolean value) { swapEyes = value; }
@@ -99,6 +111,9 @@ public final class StereoConfig {
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
         setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 10));
         setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), 100)));
+        setHandReach((int) Math.round(parseDouble(props.getProperty("handReach"), 30)));
+        setHandRaise((int) Math.round(parseDouble(props.getProperty("handRaise"), 0)));
+        setHandInward((int) Math.round(parseDouble(props.getProperty("handInward"), 0)));
         setHudDistance((float) parseDouble(props.getProperty("hudDistance"), 1.35));
         crosshairAtTarget = parseBoolean(props.getProperty("crosshairAtTarget"), true);
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
@@ -117,6 +132,9 @@ public final class StereoConfig {
         out.setProperty("depthPercent", String.valueOf(depthPercent));
         out.setProperty("focusDistance", String.valueOf(focusDistance));
         out.setProperty("handDepthPercent", String.valueOf(handDepthPercent));
+        out.setProperty("handReach", String.valueOf(handReach));
+        out.setProperty("handRaise", String.valueOf(handRaise));
+        out.setProperty("handInward", String.valueOf(handInward));
         out.setProperty("hudDistance", String.valueOf(hudDistance));
         out.setProperty("crosshairAtTarget", String.valueOf(crosshairAtTarget));
         out.setProperty("swapEyes", String.valueOf(swapEyes));
