@@ -44,6 +44,13 @@ public final class StereoConfig {
         "damageTilt: tilt the camera when hurt or dying",
         "warpPercent: strength of the nausea and portal warp, as a % of vanilla's (on top of Distortion Effects)",
         "swapEyes: put the right eye on the left half (for viewers that expect cross-eyed order)",
+        "steamVrScreen: show the game on a screen in SteamVR (false = half side-by-side in the window)",
+        "eyeResolution: width in pixels each eye renders at for the SteamVR screen (height follows the window's shape)",
+        "screenWidth: width of the SteamVR screen in metres",
+        "screenDistance: metres from your head to the SteamVR screen (when it is placed or recentered, F8)",
+        "screenHeight: metres the SteamVR screen sits above (or below) your eyes",
+        "screenCurvature: curve of the SteamVR screen in % (0 = flat)",
+        "flipScreen: debug; flips the picture on the SteamVR screen upside down",
         "hideCursor: hide the Windows cursor over the game window and draw one in both eyes instead",
         "confineCursor: keep the cursor inside the game window while it is focused");
 
@@ -61,6 +68,13 @@ public final class StereoConfig {
     private static boolean crosshairAtTarget = true;
     private static float crosshairRestOffset = 0f;
     private static boolean swapEyes = false;
+    private static boolean steamVrScreen = true;
+    private static int eyeResolution = 1920;
+    private static float screenWidth = 2.6f;
+    private static float screenDistance = 2.0f;
+    private static float screenHeight = 0f;
+    private static int screenCurvature = 0;
+    private static boolean flipScreen = false;
     private static boolean cameraBobbing = false;
     private static boolean damageTilt = false;
     private static int warpPercent = 40;
@@ -87,6 +101,13 @@ public final class StereoConfig {
     public static boolean crosshairAtTarget() { return crosshairAtTarget; }
     public static float crosshairRestOffset() { return crosshairRestOffset; }
     public static boolean swapEyes() { return swapEyes; }
+    public static boolean steamVrScreen() { return steamVrScreen; }
+    public static int eyeResolution() { return eyeResolution; }
+    public static float screenWidth() { return screenWidth; }
+    public static float screenDistance() { return screenDistance; }
+    public static float screenHeight() { return screenHeight; }
+    public static int screenCurvature() { return screenCurvature; }
+    public static boolean flipScreen() { return flipScreen; }
     public static boolean cameraBobbing() { return cameraBobbing; }
     public static boolean damageTilt() { return damageTilt; }
     public static int warpPercent() { return warpPercent; }
@@ -107,6 +128,13 @@ public final class StereoConfig {
     public static void setCrosshairAtTarget(boolean value) { crosshairAtTarget = value; }
     public static void setCrosshairRestOffset(float value) { crosshairRestOffset = Math.max(-4f, Math.min(16f, value)); }
     public static void setSwapEyes(boolean value) { swapEyes = value; }
+    public static void setSteamVrScreen(boolean value) { steamVrScreen = value; }
+    public static void setEyeResolution(int value) { eyeResolution = Math.max(640, Math.min(4096, value)); }
+    public static void setScreenWidth(float value) { screenWidth = Math.max(0.5f, Math.min(20f, value)); }
+    public static void setScreenDistance(float value) { screenDistance = Math.max(0.5f, Math.min(20f, value)); }
+    public static void setScreenHeight(float value) { screenHeight = Math.max(-3f, Math.min(3f, value)); }
+    public static void setScreenCurvature(int value) { screenCurvature = Math.max(0, Math.min(100, value)); }
+    public static void setFlipScreen(boolean value) { flipScreen = value; }
     public static void setCameraBobbing(boolean value) { cameraBobbing = value; }
     public static void setDamageTilt(boolean value) { damageTilt = value; }
     public static void setWarpPercent(int value) { warpPercent = Math.max(0, Math.min(100, value)); }
@@ -144,6 +172,13 @@ public final class StereoConfig {
         crosshairAtTarget = parseBoolean(props.getProperty("crosshairAtTarget"), true);
         setCrosshairRestOffset((float) parseDouble(props.getProperty("crosshairRestOffset"), 0));
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
+        steamVrScreen = parseBoolean(props.getProperty("steamVrScreen"), true);
+        setEyeResolution((int) Math.round(parseDouble(props.getProperty("eyeResolution"), 1920)));
+        setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), 2.6));
+        setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), 2.0));
+        setScreenHeight((float) parseDouble(props.getProperty("screenHeight"), 0));
+        setScreenCurvature((int) Math.round(parseDouble(props.getProperty("screenCurvature"), 0)));
+        flipScreen = parseBoolean(props.getProperty("flipScreen"), false);
         cameraBobbing = parseBoolean(props.getProperty("cameraBobbing"), false);
         damageTilt = parseBoolean(props.getProperty("damageTilt"), false);
         setWarpPercent((int) Math.round(parseDouble(props.getProperty("warpPercent"), 40)));
@@ -168,6 +203,13 @@ public final class StereoConfig {
         out.setProperty("crosshairAtTarget", String.valueOf(crosshairAtTarget));
         out.setProperty("crosshairRestOffset", String.valueOf(crosshairRestOffset));
         out.setProperty("swapEyes", String.valueOf(swapEyes));
+        out.setProperty("steamVrScreen", String.valueOf(steamVrScreen));
+        out.setProperty("eyeResolution", String.valueOf(eyeResolution));
+        out.setProperty("screenWidth", String.valueOf(screenWidth));
+        out.setProperty("screenDistance", String.valueOf(screenDistance));
+        out.setProperty("screenHeight", String.valueOf(screenHeight));
+        out.setProperty("screenCurvature", String.valueOf(screenCurvature));
+        out.setProperty("flipScreen", String.valueOf(flipScreen));
         out.setProperty("cameraBobbing", String.valueOf(cameraBobbing));
         out.setProperty("damageTilt", String.valueOf(damageTilt));
         out.setProperty("warpPercent", String.valueOf(warpPercent));

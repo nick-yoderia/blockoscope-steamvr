@@ -57,6 +57,11 @@ public final class StereoRenderer {
     private static int eyeHeight;
     private static int windowHeight;
     private static int windowWidth;
+    /** Size of the target the eyes are packed into side by side: the window, or the SteamVR screen's texture. */
+    private static int packedWidth;
+    private static int packedHeight;
+    /** Both eyes side by side at full resolution, handed to the SteamVR screen. */
+    private static RenderTarget screenTarget;
     private static String lastReason = "";
     /** Horizontal scale of the world projection (m00) this frame, used to give the GUI matching disparity. */
     private static float worldProjectionScale = 1f;
@@ -126,6 +131,7 @@ public final class StereoRenderer {
     /** Replaces GameRenderer.render(deltaTracker, renderLevel) in Minecraft.renderFrame. */
     public static void render(GameRenderer gameRenderer, DeltaTracker deltaTracker, boolean renderLevel) {
         CursorControl.update();
+        VrScreen.update();
         logFps();
         WindowRenderState window = gameRenderer.gameRenderState().windowRenderState;
         int width = window.width;
@@ -134,7 +140,7 @@ public final class StereoRenderer {
             ? "window minimized" : loading() ? "loading" : null;
         if (!java.util.Objects.equals(reason, lastReason)) {
             lastReason = reason;
-            System.out.println("[Parallax Screen] " + (reason == null ? "stereo on, " + width + "x" + height : "2D: " + reason));
+            System.out.println("[Parallax Screen] " + (reason == null ? "stereo on, window " + width + "x" + height : "2D: " + reason));
         }
         if (reason != null) {
             gameRenderer.render(deltaTracker, renderLevel);
@@ -145,11 +151,25 @@ public final class StereoRenderer {
         if (main.width != width || main.height != height) {
             gameRenderer.resize(width, height); // what render() would do; it is skipped while an eye renders
         }
-        // Each eye covers half the window; the render scale trades sharpness for speed (the blit rescales).
-        int halfWidth = width / 2;
-        float scale = StereoConfig.renderScale() / 100f;
-        int targetWidth = Math.max(1, Math.round(halfWidth * scale));
-        int targetHeight = Math.max(1, Math.round(height * scale));
+        // For the SteamVR screen each eye renders at the eye resolution, in the window's shape (the projection and the
+        // GUI layout follow the window). Otherwise each eye covers half the window; the render scale trades
+        // sharpness for speed (the blit rescales).
+        boolean toScreen = VrScreen.active();
+        int targetWidth;
+        int targetHeight;
+        if (toScreen) {
+            targetWidth = StereoConfig.eyeResolution();
+            targetHeight = Math.max(1, (int) Math.round((double) targetWidth * height / width));
+            packedWidth = targetWidth * 2;
+            packedHeight = targetHeight;
+            screenTarget = ensureTarget(screenTarget, "Parallax Screen", packedWidth, packedHeight);
+        } else {
+            float scale = StereoConfig.renderScale() / 100f;
+            targetWidth = Math.max(1, Math.round(width / 2 * scale));
+            targetHeight = Math.max(1, Math.round(height * scale));
+            packedWidth = width;
+            packedHeight = height;
+        }
         ensureTargets(targetWidth, targetHeight);
 
         CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
@@ -213,14 +233,21 @@ public final class StereoRenderer {
             }
         }
 
-        // Pack the eyes into the window target: left eye on the left half unless swapped.
+        // Pack the eyes side by side (left eye on the left half unless swapped) into the window, or into the SteamVR
+        // screen's texture, which the window then shows as a preview.
+        RenderTarget packed = toScreen ? screenTarget : main;
         CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-        encoder.clearColorTexture(main.getColorTexture(), BLACK);
+        encoder.clearColorTexture(packed.getColorTexture(), BLACK);
         int leftHalf = StereoConfig.swapEyes() ? RIGHT : LEFT;
-        EyeBlit.draw(encoder, targets[leftHalf], main, 0);
-        EyeBlit.draw(encoder, targets[1 - leftHalf], main, 1);
+        EyeBlit.draw(encoder, targets[leftHalf], packed, 0);
+        EyeBlit.draw(encoder, targets[1 - leftHalf], packed, 1);
         if (guiOverWindow) {
-            drawGuiOverWindow(access, main, encoder);
+            drawGuiOverWindow(access, packed, encoder);
+        }
+        if (toScreen) {
+            VrScreen.submit(packed);
+            encoder.clearColorTexture(main.getColorTexture(), BLACK);
+            EyeBlit.drawFull(encoder, packed, main);
         }
     }
 
@@ -233,10 +260,13 @@ public final class StereoRenderer {
      * with the shift rounded to whole window pixels, both eyes get exactly the same pixels, just moved, and the HUD
      * stays sharp at any render scale.
      */
-    private static void drawGuiOverWindow(GameRendererAccessor access, RenderTarget main, CommandEncoder encoder) {
-        if (main.useDepth) {
-            encoder.clearDepthTexture(main.getDepthTexture(), 0.0);
+    private static void drawGuiOverWindow(GameRendererAccessor access, RenderTarget packed, CommandEncoder encoder) {
+        if (packed.useDepth) {
+            encoder.clearDepthTexture(packed.getDepthTexture(), 0.0);
         }
+        // The GUI draws into the game's main render target.
+        RenderTarget main = Minecraft.getInstance().gameRenderer.mainRenderTarget();
+        access.parallaxScreen$setMainRenderTarget(packed);
         access.parallaxScreen$setUseUiLightmap(true);
         try {
             for (guiPass = 0; guiPass < 2; guiPass++) {
@@ -246,6 +276,7 @@ public final class StereoRenderer {
         } finally {
             guiEye = NONE;
             access.parallaxScreen$setUseUiLightmap(false);
+            access.parallaxScreen$setMainRenderTarget(main);
         }
         access.parallaxScreen$guiRenderer().endFrame();
     }
@@ -280,15 +311,15 @@ public final class StereoRenderer {
             return 0;
         }
         int leftHalf = StereoConfig.swapEyes() ? RIGHT : LEFT;
-        return guiEye == leftHalf ? 0 : windowWidth / 2;
+        return guiEye == leftHalf ? 0 : packedWidth / 2;
     }
 
     public static int guiAreaWidth() {
-        return guiEye != NONE ? windowWidth / 2 : eyeWidth;
+        return guiEye != NONE ? packedWidth / 2 : eyeWidth;
     }
 
     public static int guiAreaHeight() {
-        return guiEye != NONE ? windowHeight : eyeHeight;
+        return guiEye != NONE ? packedHeight : eyeHeight;
     }
 
     /** Horizontal factor from window pixels to pixels of the current eye's GUI area. */
@@ -603,6 +634,16 @@ public final class StereoRenderer {
             // eye; shifting clip x by m00 * halfIpd / focus puts it in the middle of the view in both eyes.
             camera.projectionMatrix.m20(projection.m20() - side * projection.m00() * halfIpd / focus);
         }
+    }
+
+    private static RenderTarget ensureTarget(RenderTarget target, String name, int width, int height) {
+        if (target == null) {
+            return new TextureTarget(name, width, height, true, GpuFormat.RGBA8_UNORM);
+        }
+        if (target.width != width || target.height != height) {
+            target.resize(width, height);
+        }
+        return target;
     }
 
     private static void ensureTargets(int width, int height) {

@@ -2,7 +2,7 @@ package nzy.parallaxscreen;
 
 import org.lwjgl.glfw.GLFW;
 
-/** F9 switches between 3D and normal 2D (and saves the choice). */
+/** F9 switches between 3D and normal 2D (and saves the choice); F8 puts the SteamVR screen in front of you again. */
 public final class ToggleKey {
     private ToggleKey() {}
 
@@ -11,6 +11,8 @@ public final class ToggleKey {
         if (key == GLFW.GLFW_KEY_F9 && action == GLFW.GLFW_PRESS) {
             StereoConfig.setEnabled(!StereoConfig.enabled());
             StereoConfig.save();
+        } else if (key == GLFW.GLFW_KEY_F8 && action == GLFW.GLFW_PRESS) {
+            VrScreen.requestRecenter();
         }
     }
 }

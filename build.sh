@@ -22,9 +22,12 @@ SODIUM="$(ls "$MODS"/sodium-fabric-*.jar | tail -1)"
 VOXY="$(ls "$MODS"/voxy-*.jar | tail -1)"
 LOADER="$(ls "$LIBS"/net/fabricmc/fabric-loader/*/fabric-loader-*.jar | tail -1)"
 ASM_TREE="$(ls "$LIBS"/org/ow2/asm/asm-tree/*/asm-tree-*.jar | tail -1)"
+# LWJGL's OpenVR bindings (from Vivecraft's jar, already packaged as Fabric libraries); bundled into the mod jar.
+OPENVR="lib/lwjgl-openvr-3.3.6.jar"
+OPENVR_NATIVES="lib/lwjgl-openvr-3.3.6-natives-windows.jar"
 CP=""
 MOJANG_LIBS="$(ls "$LIBS"/com/mojang/brigadier/*/brigadier-*.jar "$LIBS"/com/mojang/datafixerupper/*/datafixerupper-*.jar "$LIBS"/org/jspecify/jspecify/*/jspecify-*.jar "$LIBS"/it/unimi/dsi/fastutil/*/fastutil-*.jar 2>/dev/null)"
-for jar in "$MIXIN" "$LWJGL" "$GLFW" "$GL" "$JOML" "$MC" "$CLOTH" "$MODMENU" "$IRIS" "$SODIUM" "$VOXY" "$LOADER" "$ASM_TREE" $MOJANG_LIBS; do
+for jar in "$MIXIN" "$LWJGL" "$GLFW" "$GL" "$JOML" "$MC" "$CLOTH" "$MODMENU" "$IRIS" "$SODIUM" "$VOXY" "$LOADER" "$ASM_TREE" "$OPENVR" $MOJANG_LIBS; do
   CP="$CP$(cygpath -w "$jar");"
 done
 VERSION="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' src/main/resources/fabric.mod.json)"
@@ -33,5 +36,7 @@ VERSION="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' src/main/resources/fabric.mod
 rm -rf build && mkdir -p build/classes
 "$JDK/javac.exe" --release 17 -Xlint:all,-classfile -cp "$CP" -d build/classes $(find src/main/java -name '*.java')
 cp -r src/main/resources/. build/classes/
+mkdir -p build/classes/META-INF/jars
+cp "$OPENVR" "$OPENVR_NATIVES" build/classes/META-INF/jars/
 "$JDK/jar.exe" --create --file "build/parallax-screen-$VERSION.jar" -C build/classes .
 echo "Built build/parallax-screen-$VERSION.jar"
