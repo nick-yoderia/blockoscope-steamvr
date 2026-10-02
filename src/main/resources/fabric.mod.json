@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "stereo_theater",
+  "version": "0.1.0-dev",
+  "name": "Stereo Theater",
+  "description": "Renders Minecraft in half side-by-side stereoscopic 3D for viewing on a virtual screen, with no VR mod needed.",
+  "authors": [
+    "Nick Y"
+  ],
+  "contact": {
+    "sources": "https://github.com/nick-yoderia/nullvr-theater",
+    "issues": "https://github.com/nick-yoderia/nullvr-theater/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "mixins": [
+    "stereotheater.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~26.2"
+  },
+  "breaks": {
+    "vivecraft": "*"
+  }
+}

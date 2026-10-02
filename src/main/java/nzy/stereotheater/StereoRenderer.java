@@ -1,0 +1,159 @@
+package nzy.stereotheater;
+
+import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.systems.CommandEncoder;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.state.WindowRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.world.phys.Vec3;
+import nzy.stereotheater.mixin.GameRendererAccessor;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
+
+/**
+ * Renders each frame twice, once per eye, and packs the two views into the window as half side-by-side.
+ *
+ * Minecraft 26.2 extracts everything it draws (camera, level, GUI) into a render state once per frame and then
+ * renders from that state. Here the render half runs twice. For each eye the main render target is swapped for a
+ * half-width eye target, the extracted camera is moved sideways by half the eye spacing, and the projection is
+ * sheared so things at the focus distance line up in both eyes. The GUI is drawn into both eyes unchanged, so it
+ * sits on the screen surface. Projections keep the window's aspect ratio, so each eye is squeezed to half width,
+ * which is what half side-by-side viewers stretch back out.
+ */
+public final class StereoRenderer {
+    public static final int NONE = -1;
+    public static final int LEFT = 0;
+    public static final int RIGHT = 1;
+
+    private static final Vector4f BLACK = new Vector4f(0f, 0f, 0f, 1f);
+
+    private static final RenderTarget[] targets = new RenderTarget[2];
+    private static int eye = NONE;
+    private static int eyeWidth;
+    private static int windowWidth;
+    private static String lastReason = "";
+
+    private StereoRenderer() {}
+
+    /** The eye being rendered right now, or {@link #NONE} outside the stereo render. */
+    public static int eye() {
+        return eye;
+    }
+
+    /** True while the first of the two eyes renders; per-frame cleanup is held back until the second. */
+    public static boolean isFirstEye() {
+        return eye == LEFT;
+    }
+
+    public static boolean isRendering() {
+        return eye != NONE;
+    }
+
+    /** Horizontal factor from window pixels to eye target pixels while an eye renders (1 otherwise). */
+    public static float eyeScaleX() {
+        return eye == NONE || windowWidth <= 0 ? 1f : (float) eyeWidth / windowWidth;
+    }
+
+    public static int eyeWidth() {
+        return eyeWidth;
+    }
+
+    /** Replaces GameRenderer.render(deltaTracker, renderLevel) in Minecraft.renderFrame. */
+    public static void render(GameRenderer gameRenderer, DeltaTracker deltaTracker, boolean renderLevel) {
+        CursorControl.update();
+        WindowRenderState window = gameRenderer.gameRenderState().windowRenderState;
+        int width = window.width;
+        int height = window.height;
+        String reason = !StereoConfig.enabled() ? "disabled" : window.isMinimized || width < 2 || height < 1
+            ? "window minimized" : loading() ? "loading" : null;
+        if (!java.util.Objects.equals(reason, lastReason)) {
+            lastReason = reason;
+            System.out.println("[Stereo Theater] " + (reason == null ? "stereo on, " + width + "x" + height : "2D: " + reason));
+        }
+        if (reason != null) {
+            gameRenderer.render(deltaTracker, renderLevel);
+            return;
+        }
+
+        RenderTarget main = gameRenderer.mainRenderTarget();
+        if (main.width != width || main.height != height) {
+            gameRenderer.resize(width, height); // what render() would do; it is skipped while an eye renders
+        }
+        int halfWidth = width / 2;
+        ensureTargets(halfWidth, height);
+
+        CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
+        Vec3 centre = camera.pos;
+        Matrix4f projection = camera.projectionMatrix == null ? null : new Matrix4f(camera.projectionMatrix);
+        GameRendererAccessor access = (GameRendererAccessor) gameRenderer;
+        windowWidth = width;
+        eyeWidth = halfWidth;
+        try {
+            for (int i = LEFT; i <= RIGHT; i++) {
+                eye = i;
+                access.stereoTheater$setMainRenderTarget(targets[i]);
+                placeEye(camera, centre, projection, i);
+                gameRenderer.render(deltaTracker, renderLevel);
+            }
+        } finally {
+            eye = NONE;
+            access.stereoTheater$setMainRenderTarget(main);
+            camera.pos = centre;
+            if (projection != null) {
+                camera.projectionMatrix.set(projection);
+            }
+        }
+
+        // Pack the eyes into the window target: left eye on the left half unless swapped.
+        CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+        encoder.clearColorTexture(main.getColorTexture(), BLACK);
+        int leftHalf = StereoConfig.swapEyes() ? RIGHT : LEFT;
+        EyeBlit.draw(encoder, targets[leftHalf], main, 0);
+        EyeBlit.draw(encoder, targets[1 - leftHalf], main, 1);
+    }
+
+    /**
+     * Shaders are only available once resources have loaded; compiling the composite pipeline before that marks it
+     * as broken for good, so the loading screens stay 2D.
+     */
+    private static boolean loading() {
+        Minecraft minecraft = Minecraft.getInstance();
+        return !minecraft.isGameLoadFinished() || minecraft.gui.overlay() != null;
+    }
+
+    /** Moves the extracted camera to one eye and shears its projection for the focus distance. */
+    private static void placeEye(CameraRenderState camera, Vec3 centre, Matrix4f projection, int which) {
+        if (centre == null || projection == null || camera.orientation == null) {
+            return;
+        }
+        float halfIpd = StereoConfig.ipd() / 2f;
+        float side = which == LEFT ? -1f : 1f;
+        Vector3f right = camera.orientation.transform(new Vector3f(1f, 0f, 0f));
+        camera.pos = centre.add(right.x * side * halfIpd, right.y * side * halfIpd, right.z * side * halfIpd);
+
+        camera.projectionMatrix.set(projection);
+        float focus = StereoConfig.focusDistance();
+        if (focus > 0f) {
+            // A point straight ahead of the centre at the focus distance sits halfIpd to the other side of this
+            // eye; shifting clip x by m00 * halfIpd / focus puts it in the middle of the view in both eyes.
+            camera.projectionMatrix.m20(projection.m20() - side * projection.m00() * halfIpd / focus);
+        }
+    }
+
+    private static void ensureTargets(int width, int height) {
+        for (int i = LEFT; i <= RIGHT; i++) {
+            if (targets[i] == null) {
+                targets[i] = new TextureTarget(i == LEFT ? "Stereo left eye" : "Stereo right eye",
+                    width, height, true, GpuFormat.RGBA8_UNORM);
+            } else if (targets[i].width != width || targets[i].height != height) {
+                targets[i].resize(width, height);
+            }
+        }
+    }
+}

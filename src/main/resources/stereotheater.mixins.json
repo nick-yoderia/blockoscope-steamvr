@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "nzy.stereotheater.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "GameRendererAccessor",
+    "GameRendererMixin",
+    "GuiMixin",
+    "GuiRendererMixin",
+    "MinecraftMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
