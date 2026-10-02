@@ -81,11 +81,18 @@ public final class StereoConfigScreen {
             .setSaveConsumer(value -> StereoConfig.setEyeResolution(value * 64))
             .build());
 
+        screen.addEntry(entries.startBooleanToggle(Component.literal("Screen size"), StereoConfig.trueScale())
+            .setDefaultValue(false)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "True scale" : "Custom"))
+            .setTooltip(Component.literal("True scale = life-size world."))
+            .setSaveConsumer(StereoConfig::setTrueScale)
+            .build());
+
         screen.addEntry(entries.startIntSlider(Component.literal("Screen width"),
                 Math.round(StereoConfig.screenWidth() * 10), 5, 200)
             .setDefaultValue(26)
             .setTextGetter(value -> Component.literal(String.format("%.1f m", value / 10f)))
-            .setTooltip(Component.literal("How big the screen is."))
+            .setTooltip(Component.literal("Custom size only."))
             .setSaveConsumer(value -> StereoConfig.setScreenWidth(value / 10f))
             .build());
 

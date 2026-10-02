@@ -128,6 +128,30 @@ public final class StereoRenderer {
         return eyeHeight;
     }
 
+    /**
+     * The distance that sits on the screen surface: the screen's own distance in true-scale mode (see
+     * {@link #trueScaleScreenWidth}), the focus distance setting otherwise.
+     */
+    static float focusDistance() {
+        return VrScreen.active() && StereoConfig.trueScale() ? StereoConfig.screenDistance() : StereoConfig.focusDistance();
+    }
+
+    /**
+     * True scale: a screen that covers exactly the game's field of view from where you sit, with the focus distance
+     * at the screen. Each eye's picture is then what that eye would see through a window of that size, so with depth
+     * strength 100% the world appears life-size (a block is a metre). The game's field of view setting is used, not
+     * the momentary one (sprinting widens it), so the screen doesn't change size.
+     */
+    static float trueScaleScreenWidth() {
+        Minecraft minecraft = Minecraft.getInstance();
+        int width = windowWidth > 0 ? windowWidth : minecraft.getWindow().getWidth();
+        int height = windowHeight > 0 ? windowHeight : minecraft.getWindow().getHeight();
+        double aspect = height > 0 ? (double) width / height : 16.0 / 9.0;
+        double verticalFov = Math.toRadians(minecraft.options.fov().get());
+        double halfWidthRatio = aspect * Math.tan(verticalFov / 2.0);
+        return (float) (2.0 * StereoConfig.screenDistance() * halfWidthRatio);
+    }
+
     /** Replaces GameRenderer.render(deltaTracker, renderLevel) in Minecraft.renderFrame. */
     public static void render(GameRenderer gameRenderer, DeltaTracker deltaTracker, boolean renderLevel) {
         CursorControl.update();
@@ -360,7 +384,7 @@ public final class StereoRenderer {
         // Scaling the eye offset and the shear together scales the hand's disparity (0 = on the screen surface).
         float halfIpd = StereoConfig.ipd() / 2f * StereoConfig.handDepthPercent() / 100f;
         float side = side();
-        float focus = StereoConfig.focusDistance();
+        float focus = focusDistance();
         // Shift in clip space (x += k * w) rather than editing one element, so it stays right when the matrix
         // already contains other transforms (Iris scales the hand's depth and adds view bobbing).
         float shift = focus > 0f ? side * projection.m00() * halfIpd / focus : 0f;
@@ -413,7 +437,7 @@ public final class StereoRenderer {
         if (!StereoConfig.crosshairAtTarget()) {
             return eyeGuiProjection(projection);
         }
-        float focus = StereoConfig.focusDistance();
+        float focus = focusDistance();
         float inverseFocus = focus > 0f ? 1f / focus : 0f;
         float offset = guiSide() * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - crosshairInverseDistance);
         return guiProjection(projection, snapToPixels(offset));
@@ -461,7 +485,7 @@ public final class StereoRenderer {
      */
     private static void updateGuiDepth(float seconds) {
         Minecraft minecraft = Minecraft.getInstance();
-        float focus = StereoConfig.focusDistance();
+        float focus = focusDistance();
         float inverseFocus = focus > 0f ? 1f / focus : 0f;
         float target;
         Screen screen = minecraft.gui.screen();
@@ -559,7 +583,7 @@ public final class StereoRenderer {
         if (side == 0f) {
             return 0f;
         }
-        float focus = StereoConfig.focusDistance();
+        float focus = focusDistance();
         float inverseFocus = focus > 0f ? 1f / focus : 0f;
         return snapToPixels(side * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - guiInverseDistance));
     }
@@ -629,7 +653,7 @@ public final class StereoRenderer {
         camera.pos = centre.add(right.x * side * halfIpd, right.y * side * halfIpd, right.z * side * halfIpd);
 
         camera.projectionMatrix.set(projection);
-        float focus = StereoConfig.focusDistance();
+        float focus = focusDistance();
         if (focus > 0f) {
             // A point straight ahead of the centre at the focus distance sits halfIpd to the other side of this
             // eye; shifting clip x by m00 * halfIpd / focus puts it in the middle of the view in both eyes.

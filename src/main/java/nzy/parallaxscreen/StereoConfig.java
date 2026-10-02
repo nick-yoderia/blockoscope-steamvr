@@ -46,6 +46,7 @@ public final class StereoConfig {
         "swapEyes: put the right eye on the left half (for viewers that expect cross-eyed order)",
         "steamVrScreen: show the game on a screen in SteamVR (false = half side-by-side in the window)",
         "eyeResolution: width in pixels each eye renders at for the SteamVR screen (height follows the window's shape)",
+        "trueScale: size the SteamVR screen to the game's field of view and focus at the screen, so the world is life-size (ignores screenWidth and focusDistance)",
         "screenWidth: width of the SteamVR screen in metres",
         "screenDistance: metres from your head to the SteamVR screen (when it is placed or recentered, F8)",
         "screenHeight: metres the SteamVR screen sits above (or below) your eyes",
@@ -71,6 +72,7 @@ public final class StereoConfig {
     private static boolean swapEyes = false;
     private static boolean steamVrScreen = true;
     private static int eyeResolution = 1920;
+    private static boolean trueScale = false;
     private static float screenWidth = 2.6f;
     private static float screenDistance = 2.0f;
     private static float screenHeight = 0f;
@@ -105,6 +107,7 @@ public final class StereoConfig {
     public static boolean swapEyes() { return swapEyes; }
     public static boolean steamVrScreen() { return steamVrScreen; }
     public static int eyeResolution() { return eyeResolution; }
+    public static boolean trueScale() { return trueScale; }
     public static float screenWidth() { return screenWidth; }
     public static float screenDistance() { return screenDistance; }
     public static float screenHeight() { return screenHeight; }
@@ -133,6 +136,7 @@ public final class StereoConfig {
     public static void setSwapEyes(boolean value) { swapEyes = value; }
     public static void setSteamVrScreen(boolean value) { steamVrScreen = value; }
     public static void setEyeResolution(int value) { eyeResolution = Math.max(640, Math.min(4096, value)); }
+    public static void setTrueScale(boolean value) { trueScale = value; }
     public static void setScreenWidth(float value) { screenWidth = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenDistance(float value) { screenDistance = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenHeight(float value) { screenHeight = Math.max(-3f, Math.min(3f, value)); }
@@ -178,6 +182,7 @@ public final class StereoConfig {
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
         steamVrScreen = parseBoolean(props.getProperty("steamVrScreen"), true);
         setEyeResolution((int) Math.round(parseDouble(props.getProperty("eyeResolution"), 1920)));
+        trueScale = parseBoolean(props.getProperty("trueScale"), false);
         setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), 2.6));
         setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), 2.0));
         setScreenHeight((float) parseDouble(props.getProperty("screenHeight"), 0));
@@ -210,6 +215,7 @@ public final class StereoConfig {
         out.setProperty("swapEyes", String.valueOf(swapEyes));
         out.setProperty("steamVrScreen", String.valueOf(steamVrScreen));
         out.setProperty("eyeResolution", String.valueOf(eyeResolution));
+        out.setProperty("trueScale", String.valueOf(trueScale));
         out.setProperty("screenWidth", String.valueOf(screenWidth));
         out.setProperty("screenDistance", String.valueOf(screenDistance));
         out.setProperty("screenHeight", String.valueOf(screenHeight));

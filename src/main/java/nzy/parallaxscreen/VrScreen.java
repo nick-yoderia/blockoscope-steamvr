@@ -165,7 +165,7 @@ public final class VrScreen {
 
     /** Screen size and curve from the settings; only sent to SteamVR when they change. */
     private static void applyShape() throws Throwable {
-        float width = StereoConfig.screenWidth();
+        float width = StereoConfig.trueScale() ? StereoRenderer.trueScaleScreenWidth() : StereoConfig.screenWidth();
         float curvature = StereoConfig.screenCurvature() / 100f;
         if (width != appliedWidth) {
             appliedWidth = width;
