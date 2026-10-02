@@ -16,8 +16,8 @@ import net.minecraft.resources.Identifier;
  * at an offset on OpenGL, and a render area only clips, so the half is placed by the vertex shader.)
  */
 public final class EyeBlit {
-    /** Left half, right half, whole target. */
-    private static final RenderPipeline[] PIPELINES = {pipeline(0), pipeline(1), pipeline(2)};
+    /** Left half, right half, whole target, whole target from the source's left half. */
+    private static final RenderPipeline[] PIPELINES = {pipeline(0), pipeline(1), pipeline(2), pipeline(3)};
 
     private EyeBlit() {}
 
@@ -32,13 +32,16 @@ public final class EyeBlit {
             .build();
     }
 
-    /** Draws {@code source} over the whole of {@code target}, scaled to fit (the window preview). */
-    public static void drawFull(CommandEncoder encoder, RenderTarget source, RenderTarget target) {
+    /**
+     * Draws {@code source} over the whole of {@code target}, scaled to fit (the window preview); with
+     * {@code leftHalfOnly}, only the left half of {@code source} (one eye of a side-by-side picture).
+     */
+    public static void drawFull(CommandEncoder encoder, RenderTarget source, RenderTarget target, boolean leftHalfOnly) {
         RenderPassDescriptor descriptor = RenderPassDescriptor.create(() -> "Parallax Screen preview blit")
             .withColorAttachment(target.getColorTextureView())
             .withRenderArea(new RenderPass.RenderArea(0, 0, target.width, target.height));
         try (RenderPass pass = encoder.createRenderPass(descriptor)) {
-            pass.setPipeline(PIPELINES[2]);
+            pass.setPipeline(PIPELINES[leftHalfOnly ? 3 : 2]);
             RenderSystem.bindDefaultUniforms(pass);
             pass.bindTexture("InSampler", source.getColorTextureView(),
                 RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));

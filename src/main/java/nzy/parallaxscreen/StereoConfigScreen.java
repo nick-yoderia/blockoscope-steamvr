@@ -62,6 +62,75 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setSwapEyes)
             .build());
 
+        // --- SteamVR screen ---
+        ConfigCategory screen = builder.getOrCreateCategory(Component.literal("SteamVR screen"));
+        screen.addEntry(entries.startTextDescription(Component.literal(
+            "Shown in SteamVR while a headset is connected. F8 puts it in front of you again.")).build());
+
+        screen.addEntry(entries.startBooleanToggle(Component.literal("SteamVR screen"), StereoConfig.steamVrScreen())
+            .setDefaultValue(true)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off (window only)"))
+            .setTooltip(Component.literal("Off = half side-by-side in the window."))
+            .setSaveConsumer(StereoConfig::setSteamVrScreen)
+            .build());
+
+        screen.addEntry(entries.startIntSlider(Component.literal("Eye resolution"), StereoConfig.eyeResolution() / 64, 10, 64)
+            .setDefaultValue(30)
+            .setTextGetter(value -> Component.literal(value * 64 + " px wide"))
+            .setTooltip(Component.literal("Per eye. Higher = sharper, slower."))
+            .setSaveConsumer(value -> StereoConfig.setEyeResolution(value * 64))
+            .build());
+
+        screen.addEntry(entries.startIntSlider(Component.literal("Screen width"),
+                Math.round(StereoConfig.screenWidth() * 10), 5, 200)
+            .setDefaultValue(26)
+            .setTextGetter(value -> Component.literal(String.format("%.1f m", value / 10f)))
+            .setTooltip(Component.literal("How big the screen is."))
+            .setSaveConsumer(value -> StereoConfig.setScreenWidth(value / 10f))
+            .build());
+
+        screen.addEntry(entries.startIntSlider(Component.literal("Screen distance"),
+                Math.round(StereoConfig.screenDistance() * 10), 5, 200)
+            .setDefaultValue(20)
+            .setTextGetter(value -> Component.literal(String.format("%.1f m", value / 10f)))
+            .setTooltip(Component.literal("Applies when the screen is recentered (F8)."))
+            .setSaveConsumer(value -> {
+                StereoConfig.setScreenDistance(value / 10f);
+                VrScreen.requestRecenter();
+            })
+            .build());
+
+        screen.addEntry(entries.startIntSlider(Component.literal("Screen height"),
+                Math.round(StereoConfig.screenHeight() * 10), -30, 30)
+            .setDefaultValue(0)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Eye level" : String.format("%+.1f m", value / 10f)))
+            .setTooltip(Component.literal("Above or below your eyes."))
+            .setSaveConsumer(value -> {
+                StereoConfig.setScreenHeight(value / 10f);
+                VrScreen.requestRecenter();
+            })
+            .build());
+
+        screen.addEntry(entries.startIntSlider(Component.literal("Curve"), StereoConfig.screenCurvature(), 0, 100)
+            .setDefaultValue(0)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Flat" : value + "%"))
+            .setTooltip(Component.literal("Bends the screen around you."))
+            .setSaveConsumer(StereoConfig::setScreenCurvature)
+            .build());
+
+        screen.addEntry(entries.startBooleanToggle(Component.literal("Window shows"), StereoConfig.previewBothEyes())
+            .setDefaultValue(false)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "Both eyes" : "Left eye"))
+            .setTooltip(Component.literal("What the monitor shows meanwhile."))
+            .setSaveConsumer(StereoConfig::setPreviewBothEyes)
+            .build());
+
+        screen.addEntry(entries.startBooleanToggle(Component.literal("Flip picture"), StereoConfig.flipScreen())
+            .setDefaultValue(false)
+            .setTooltip(Component.literal("Use if the screen shows upside down."))
+            .setSaveConsumer(StereoConfig::setFlipScreen)
+            .build());
+
         // --- Comfort ---
         ConfigCategory comfort = builder.getOrCreateCategory(Component.literal("Comfort"));
         comfort.addEntry(entries.startTextDescription(Component.literal(

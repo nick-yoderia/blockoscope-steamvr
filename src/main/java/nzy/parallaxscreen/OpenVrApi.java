@@ -109,6 +109,7 @@ final class OpenVrApi {
                 }
             }
         }
+        applyDevelopmentEnvironment();
         SymbolLookup lookup = SymbolLookup.libraryLookup(dll, Arena.global());
         isRuntimeInstalled = export(lookup, "VR_IsRuntimeInstalled", FunctionDescriptor.of(JAVA_BOOLEAN));
         isHmdPresent = export(lookup, "VR_IsHmdPresent", FunctionDescriptor.of(JAVA_BOOLEAN));
@@ -118,6 +119,40 @@ final class OpenVrApi {
         getGenericInterface = export(lookup, "VR_GetGenericInterface", FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
         isInterfaceVersionValid = export(lookup, "VR_IsInterfaceVersionValid", FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
         library = lookup;
+    }
+
+    /**
+     * Development only: {@code config/parallax-screen.vrenv} holds KEY=VALUE lines set as environment variables of the
+     * game before OpenVR starts (a SteamVR it launches inherits them). With VR_CONFIG_PATH pointing at a separate
+     * config folder that forces SteamVR's null headset driver, the screen can be tested without a headset and without
+     * touching the real SteamVR settings.
+     */
+    private static void applyDevelopmentEnvironment() {
+        Path file = Path.of("config", "parallax-screen.vrenv");
+        if (!Files.isRegularFile(file)) {
+            return;
+        }
+        try (Arena arena = Arena.ofConfined()) {
+            MethodHandle setVariable = LINKER.downcallHandle(
+                SymbolLookup.libraryLookup("kernel32", arena).findOrThrow("SetEnvironmentVariableW"),
+                FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+            for (String line : Files.readAllLines(file)) {
+                int equals = line.indexOf('=');
+                if (equals <= 0 || line.startsWith("#")) {
+                    continue;
+                }
+                String key = line.substring(0, equals).trim();
+                String value = line.substring(equals + 1).trim();
+                int ok = (int) setVariable.invokeExact(wide(arena, key), wide(arena, value));
+                System.out.println("[Parallax Screen] Development environment: " + key + "=" + value + (ok != 0 ? "" : " (failed)"));
+            }
+        } catch (Throwable t) {
+            System.out.println("[Parallax Screen] Could not apply " + file + ": " + t);
+        }
+    }
+
+    private static MemorySegment wide(Arena arena, String text) {
+        return arena.allocateFrom(text + "\0", java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
     private static MethodHandle export(SymbolLookup lookup, String name, FunctionDescriptor descriptor) {

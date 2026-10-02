@@ -51,6 +51,7 @@ public final class StereoConfig {
         "screenHeight: metres the SteamVR screen sits above (or below) your eyes",
         "screenCurvature: curve of the SteamVR screen in % (0 = flat)",
         "flipScreen: debug; flips the picture on the SteamVR screen upside down",
+        "previewBothEyes: while the SteamVR screen is on, show both eyes side by side in the window (false = left eye only)",
         "hideCursor: hide the Windows cursor over the game window and draw one in both eyes instead",
         "confineCursor: keep the cursor inside the game window while it is focused");
 
@@ -75,6 +76,7 @@ public final class StereoConfig {
     private static float screenHeight = 0f;
     private static int screenCurvature = 0;
     private static boolean flipScreen = false;
+    private static boolean previewBothEyes = false;
     private static boolean cameraBobbing = false;
     private static boolean damageTilt = false;
     private static int warpPercent = 40;
@@ -108,6 +110,7 @@ public final class StereoConfig {
     public static float screenHeight() { return screenHeight; }
     public static int screenCurvature() { return screenCurvature; }
     public static boolean flipScreen() { return flipScreen; }
+    public static boolean previewBothEyes() { return previewBothEyes; }
     public static boolean cameraBobbing() { return cameraBobbing; }
     public static boolean damageTilt() { return damageTilt; }
     public static int warpPercent() { return warpPercent; }
@@ -135,6 +138,7 @@ public final class StereoConfig {
     public static void setScreenHeight(float value) { screenHeight = Math.max(-3f, Math.min(3f, value)); }
     public static void setScreenCurvature(int value) { screenCurvature = Math.max(0, Math.min(100, value)); }
     public static void setFlipScreen(boolean value) { flipScreen = value; }
+    public static void setPreviewBothEyes(boolean value) { previewBothEyes = value; }
     public static void setCameraBobbing(boolean value) { cameraBobbing = value; }
     public static void setDamageTilt(boolean value) { damageTilt = value; }
     public static void setWarpPercent(int value) { warpPercent = Math.max(0, Math.min(100, value)); }
@@ -179,6 +183,7 @@ public final class StereoConfig {
         setScreenHeight((float) parseDouble(props.getProperty("screenHeight"), 0));
         setScreenCurvature((int) Math.round(parseDouble(props.getProperty("screenCurvature"), 0)));
         flipScreen = parseBoolean(props.getProperty("flipScreen"), false);
+        previewBothEyes = parseBoolean(props.getProperty("previewBothEyes"), false);
         cameraBobbing = parseBoolean(props.getProperty("cameraBobbing"), false);
         damageTilt = parseBoolean(props.getProperty("damageTilt"), false);
         setWarpPercent((int) Math.round(parseDouble(props.getProperty("warpPercent"), 40)));
@@ -210,6 +215,7 @@ public final class StereoConfig {
         out.setProperty("screenHeight", String.valueOf(screenHeight));
         out.setProperty("screenCurvature", String.valueOf(screenCurvature));
         out.setProperty("flipScreen", String.valueOf(flipScreen));
+        out.setProperty("previewBothEyes", String.valueOf(previewBothEyes));
         out.setProperty("cameraBobbing", String.valueOf(cameraBobbing));
         out.setProperty("damageTilt", String.valueOf(damageTilt));
         out.setProperty("warpPercent", String.valueOf(warpPercent));

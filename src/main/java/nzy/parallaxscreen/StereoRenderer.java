@@ -247,7 +247,8 @@ public final class StereoRenderer {
         if (toScreen) {
             VrScreen.submit(packed);
             encoder.clearColorTexture(main.getColorTexture(), BLACK);
-            EyeBlit.drawFull(encoder, packed, main);
+            // The window shows one eye at full width, so it looks like normal 2D on a monitor.
+            EyeBlit.drawFull(encoder, packed, main, !StereoConfig.previewBothEyes());
         }
     }
 
