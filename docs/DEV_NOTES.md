@@ -1,7 +1,46 @@
 # Development notes
 
-Engineering notes for Parallax Theater, kept up to date at the end of each work session. `CLAUDE.md` has the
-workflow (build, test loop, rules); this file has the how and why.
+Engineering notes for Parallax Screen, kept up to date at the end of each work session. `CLAUDE.md` has the
+workflow (build, test loop, rules); this file has the how and why. Everything up to "SteamVR screen" is shared with
+Parallax Theater (this repo started from its 0.1.5-alpha); version history before 0.1.0 is Parallax Theater's.
+
+## SteamVR screen (what Parallax Screen adds)
+
+Output: `StereoRenderer.render` asks `VrScreen.active()`. When the SteamVR screen is up, each eye target is
+`eyeResolution` wide in the window's aspect (so the projection and the GUI layout, which follow the window, still
+fit), and the eyes are packed into `screenTarget` (2 x eye width); the GUI-over-window pass draws into it (`packedWidth`
+/`packedHeight` drive `guiArea*`), `VrScreen.submit` hands its GL id to the overlay, and the window gets a preview
+(`EyeBlit.drawFull`, left half only unless `previewBothEyes`). Without SteamVR everything is Parallax Theater's half
+side-by-side window output.
+
+`VrScreen`: OpenVR **overlay application** (not a scene app): SteamVR keeps its own scene and composites the overlay
+at the headset rate, so head motion is smooth regardless of game FPS, and the game doesn't need to track the head.
+Overlay flags `SideBySide_Parallel` (left half to the left eye) and `IgnoreTextureAlpha` (the GUI leaves alpha < 1).
+Placement: `place()` puts it `screenDistance` ahead of the HMD along its heading only (yaw), level, at eye height +
+`screenHeight`; F8 (`ToggleKey`) or changing distance/height re-places it. Width/curve are re-sent when they change;
+true scale computes the width from the game's FOV setting and window aspect (`StereoRenderer.trueScaleScreenWidth`)
+and uses the screen distance as focus distance (`StereoRenderer.focusDistance()`).
+
+Connecting (`VrScreen.connect`, daemon thread, every 5 s while not connected): only when `vrserver.exe` is running
+(`ProcessHandle`), so the mod never launches SteamVR (initialising an overlay app would), and quitting SteamVR
+(`VREvent_Quit` -> `AcknowledgeQuit_Exiting`, `stop`) doesn't bring it back. Verified: detach on quit, re-attach
+within 5 s of SteamVR starting. A shutdown hook calls `VR_ShutdownInternal` when the game exits.
+
+Texture bounds: plain 0..1 by default, as Vivecraft submits Minecraft's GL eye textures to the compositor; `flipScreen`
+flips. **Not yet checked in a headset** (the first null-driver test ran while the PC was locked, so the compositor
+output couldn't be captured).
+
+### OpenVR binding (`OpenVrApi`)
+
+LWJGL's OpenVR bindings (last release 3.3.6, which Vivecraft bundles) don't load on LWJGL 3.4 (Minecraft 26.2):
+`VR.<clinit>` reads `Configuration.OPENVR_LIBRARY_NAME`, removed in 3.4, and many calls use JNI helpers whose
+signatures changed. Vivecraft patches about ten LWJGL classes with mixins for that. Instead, `OpenVrApi` calls Valve's
+`openvr_api.dll` (bundled at `natives/windows-x64/`, from the LWJGL 3.3.6 natives jar, OpenVR commit ae46a8dd, BSD) with
+Java 25's foreign function API (hence `--release 25`): the exports `VR_InitInternal2`, `VR_ShutdownInternal`,
+`VR_GetGenericInterface("FnTable:IVRSystem_022" / "FnTable:IVROverlay_027")`, then function pointers by slot. Slot
+numbers were read from LWJGL 3.3.6's `OpenVR$IVROverlay`/`$IVRSystem` constructors (generated from openvr_capi.h);
+struct sizes (VREvent_t 64, TrackedDevicePose_t 80 with bPoseIsValid at 76, Texture_t 16) from LWJGL's struct classes.
+The DLL is copied to `.parallax-screen/openvr_api.dll` in the game folder and loaded from there.
 
 ## Render flow
 
@@ -98,19 +137,34 @@ the user's setting in NullVR Theater.
 
 Tools in `..\mcdev` (outside the repo):
 
-- `cycle.ps1 -Shot name`: close the dev instance, install the built jar, launch into the world, screenshot.
+- `cycle-screen.ps1 -Shot name`: close the **26.2-Screen-Dev** instance (a copy of 26.2-Stereo-Dev, the Parallax
+  Theater test instance), install the built jar, launch into the world, screenshot. (`cycle.ps1` is Parallax Theater's.)
+- SteamVR without a headset: the user's `steamvr.vrsettings` must not be changed (the permission system refused it).
+  Instead `mcdevrtest\config\steamvr.vrsettings` forces SteamVR's null driver, and SteamVR is pointed at that
+  folder with `VR_CONFIG_PATH` (logs: `VR_LOG_PATH=mcdevrtest\logs`). The game sets those variables itself before
+  connecting when `config/parallax-screen.vrenv` (KEY=VALUE lines, development only) exists in the instance; to start
+  SteamVR by hand use PowerShell with `$env:VR_CONFIG_PATH`/`$env:VR_LOG_PATH` set and
+  `Start-Process ...\SteamVRin\win64rstartup.exe`. The null headset's view is the compositor's "Headset Window"
+  (`winshot.ps1 -Process vrcompositor` captures it with PrintWindow; not while the PC is locked). Quit it by closing
+  the `vrmonitor` window. SteamVR's stereo screenshot (`vrshot\VrShot.java`) fails without a scene app.
 - `cmd.ps1 -Commands @('time set noon', ...)`: chat commands via the clipboard; `keys.ps1 -Keys @('{F9}')`.
   Both refuse to type unless the game window is in front (`focus.ps1`), so keystrokes can't leak elsewhere.
 - `disp2.py shot.png name=y0,y1,x0,x1 ...`: sub-pixel disparity of a region (full-res coordinates, left-half x).
   Negative = in front of the screen. Compare against the formula above.
-- Debug logging: create `config/parallax-theater.debug` (FPS every 5 s plus any `StereoDebug.log`).
+- Debug logging: create `config/parallax-screen.debug` (FPS every 5 s plus any `StereoDebug.log`).
 - Test scene in the dev world copy: stone floor, a gold-block pillar ~5 m ahead and a NoAI iron golem beside it.
   `gamerule advance_time false`, `gamerule advance_weather false` keep lighting stable.
 - Decompiled sources (Vineflower) in `mcdev\src\{mc,b3d,sodium-...,iris,voxy-...,vivecraft}`.
 
-Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in 3D. Without shaders about 700-1600 FPS.
+Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in window 3D (Parallax Theater). With the SteamVR
+screen at 1920 per eye (3840x1080 texture) and the null-driver compositor running: about 150 FPS.
 
 ## Open items
+
+- Headset check of the SteamVR screen: orientation (flipScreen), placement and F8, sharpness, comfort of the default
+  size (2.6 m at 2 m).
+- A Voxy "Section mesh generation service ... Not running" exception appeared once at world load in the Screen
+  instance and not again on relaunch; watch for it.
 
 - Block-entity breaking overlay is positioned relative to the centre camera at extraction (tiny error, not fixed).
 - Hand depth at 100% is strong (about -52 px per eye for the held item); fine in testing, lower it if it strains.

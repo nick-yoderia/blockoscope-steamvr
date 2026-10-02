@@ -1,99 +1,101 @@
-# Parallax Theater
+# Parallax Screen
 
 > **Alpha.** Built and tested on one setup (see [Tested with](#tested-with)). Expect rough edges.
 
-A Fabric mod that renders Minecraft in **half side-by-side (SBS) stereoscopic 3D**. Show the game window on a virtual
-screen in a headset (for example in Bigscreen) and you get real depth, like a 3D movie: moving your head moves your
-view of the screen, not the game camera. No VR mod is involved, so the game plays exactly like normal Minecraft:
-vanilla HUD, menus, animations and mouse.
+A Fabric mod that shows Minecraft in **stereoscopic 3D on a virtual screen in SteamVR**. Each eye is rendered at full
+resolution and handed straight to SteamVR, which shows it on a floating screen in your headset: real depth, like a 3D
+movie, without a monitor in the loop and without a VR mod. The game plays exactly like normal Minecraft (vanilla HUD,
+menus, animations, keyboard and mouse); moving your head moves your view of the screen, not the game camera.
 
-It grew out of [NullVR Theater](https://github.com/nick-yoderia/nullvr-theater), which does the same through
-Vivecraft's NullVR mode. Parallax Theater drops Vivecraft and its VR-specific behaviour (VR body animations, floating
-HUD panels, VR comfort changes) and renders the vanilla game twice instead.
+It is the SteamVR sibling of [Parallax Theater](https://github.com/nick-yoderia/parallax-theater), which packs both
+eyes into one half side-by-side monitor image for viewing in Bigscreen (and so can be watched together with someone).
+Packing halves each eye's horizontal resolution, and the viewer stretches it back; Parallax Screen skips that step.
 
 ## Features
 
-- **Stereo rendering:** every frame is drawn once per eye and packed into half side-by-side. Each eye renders at half
-  the window width, so the total pixel count is about the same as one normal frame.
-- **Depth controls:** depth strength (eye spacing, 100% = natural) and **focus distance**, the distance that sits
-  exactly on the screen surface (default 10 m). Nearer things pop out of the screen, farther things sit behind it.
-- **HUD and menus in depth:** the HUD and menus float at a set distance (default 1.35 m), with a cursor drawn in both
-  eyes in menus (the Windows cursor would only show in one).
-- **Crosshair at the depth of what you aim at:** within reach it sits on the block or entity you are targeting
-  (hitbox based, so on the grass, not what is behind it), so the crosshair and the target never double. With nothing
-  in reach it rests at the edge of your block reach, adjustable nearer or farther.
-- **Hand depth:** your hand and held item have real depth (adjustable, 0–200%), and in 3D the arm reaches a little
-  further forward so more of what you hold is in view (Arm reach, plus optional raise/inward offsets).
-- **Comfort options:** camera bobbing and damage tilt are off by default in 3D (the hand still bobs), and nausea and
-  portal warp are toned down. Each can be turned back on.
-- **F9** switches between 3D and normal 2D at any time.
-- **Render scale** (25–200% of the half-window resolution) to trade sharpness for speed.
+- **Full resolution per eye:** each eye renders at the eye resolution you choose (default 1920 pixels wide, in the
+  window's shape), independent of your monitor.
+- **SteamVR screen:** an OpenVR overlay in SteamVR Home or the void, with adjustable size, distance, height and curve.
+  SteamVR draws it at the headset's refresh rate, so head movement stays smooth whatever the game's frame rate is.
+  **F8** puts it straight in front of you again.
+- **True scale** (optional): the screen covers exactly the game's field of view and the focus is at the screen, so
+  with depth strength 100% the world is life-size, as if looking through a window.
+- **Automatic:** whenever SteamVR is running the screen is there; when it isn't (or you quit it) the window shows half
+  side-by-side 3D instead. The mod never starts SteamVR itself.
+- **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
+- Everything from Parallax Theater: depth strength and focus distance, a HUD that sits on whatever is behind the hotbar,
+  menus on the screen surface, a crosshair at the depth of what you aim at, hand depth, comfort options, F9 for 2D.
 
 ### Works with
 
-- **Sodium**
-- **Iris** shader packs (tested with BSL and Complementary Reimagined). Each eye gets its own shader pipeline, so
-  temporal effects (TAA, clouds, previous-frame data) never mix the two eyes.
-- **Voxy** distant terrain, with and without shader packs.
+- **Sodium**, **Iris** shader packs (tested with BSL and Complementary Reimagined; each eye gets its own pipeline),
+  **Voxy** distant terrain.
 - Mod Menu + Cloth Config for the settings screen.
-
-Every 3D correctness issue found so far was measured on screenshots: blocks, entities, particles, clouds, sky, Voxy
-terrain, the hand and the crosshair all line up with the depth they should have in both eyes.
 
 ## Requirements
 
-- Minecraft **26.2** with Fabric Loader
+- Minecraft **26.2** with Fabric Loader, **Java 25** (what 26.2 ships with)
+- **SteamVR** on **Windows** (the OpenGL renderer, Minecraft's default)
 - Recommended: [Mod Menu](https://modrinth.com/mod/modmenu) and [Cloth Config](https://modrinth.com/mod/cloth-config)
-- Not compatible with Vivecraft (use NullVR Theater for that)
-- Windows for cursor confinement (everything else is cross-platform but untested)
+- Not compatible with Vivecraft, and don't install it together with Parallax Theater (they replace the same rendering)
 
 ## Setup
 
-1. Put `parallax-theater-<version>.jar` in your `mods` folder.
-2. Run Minecraft **fullscreen on a 16:9 monitor**.
-3. In your viewer, share that monitor and enable **half side-by-side** 3D. In Bigscreen that is the SBS toggle; the
-   shared monitor must be the main display (21:9 ultrawide monitors don't work with Bigscreen's SBS mode).
+1. Put `parallax-screen-<version>.jar` in your `mods` folder.
+2. Start SteamVR with your headset, then Minecraft (any order; the screen appears within a few seconds of both
+   running). Keep the game window focused for keyboard and mouse.
+3. Press **F8** to bring the screen in front of you. Adjust it under **Mods > Parallax Screen > SteamVR screen**.
 
-If the depth looks inside-out, turn on **Swap eyes**.
+If the picture is upside down in the headset, turn on **Flip picture**; if the depth looks inside-out, **Swap eyes**.
+Java may print a one-time warning about "restricted methods": that is the mod calling SteamVR's library and is harmless.
 
 ## Settings
 
-**Mods > Parallax Theater** (needs Mod Menu and Cloth Config). Saving applies changes immediately. Everything is also
-stored in `config/parallax-theater.properties`:
+**Mods > Parallax Screen** (needs Mod Menu and Cloth Config). Saving applies changes immediately. Everything is also
+stored in `config/parallax-screen.properties` (copied from Parallax Theater's settings the first time, if present):
 
 | Key | Default | Meaning |
 |---|---|---|
 | `enabled` | `true` | 3D on (F9 toggles it) |
-| `renderScale` | `100` | % of the half-window resolution each eye renders at |
+| `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
+| `eyeResolution` | `1920` | Width in pixels each eye renders at for the SteamVR screen |
+| `trueScale` | `false` | Size the screen to the game's field of view and focus at the screen (life-size world) |
+| `screenWidth` | `2.6` | Screen width in metres (when not true scale) |
+| `screenDistance` | `2.0` | Metres from your head to the screen, applied when it is placed or recentered (F8) |
+| `screenHeight` | `0` | Metres above (or below) your eyes |
+| `screenCurvature` | `0` | Curve of the screen in % (`0` = flat) |
+| `previewBothEyes` | `false` | Window shows both eyes side by side instead of the left eye |
+| `flipScreen` | `false` | Flip the picture in the headset upside down |
+| `renderScale` | `100` | Window side-by-side only: % of the half-window resolution each eye renders at |
 | `depthPercent` | `100` | 3D strength as a % of average eye spacing (6.4 cm); `0` = flat |
 | `focusDistance` | `10` | Metres that sit exactly on the screen surface; `0` = infinity |
-| `swapEyes` | `false` | Right eye on the left half (cross-eyed order) |
+| `swapEyes` | `false` | Swap the eyes (if the depth looks inside-out) |
+| `hudDepth` | `scene` | In-game HUD depth: `scene` (on what is behind the hotbar), `aim` (crosshair's depth), `fixed` |
+| `hudDistance` | `1.35` | Metres for a fixed HUD depth; `0` = on the screen surface |
+| `menuDistance` | `0` | Metres at which menus float; `0` = on the screen surface |
+| `crosshairAtTarget` | `true` | Crosshair at the depth of what it aims at within reach (`false` = with the HUD) |
+| `crosshairRestOffset` | `0` | Metres nearer (negative) or farther than your reach where the crosshair rests |
+| `handDepthPercent` | `100` | Depth of your hand and held item, % of the world's |
+| `handReach` | `30` | Centimetres the arm reaches further forward in 3D; `0` = vanilla |
+| `handRaise` | `0` | Centimetres the hand and held item are raised in 3D |
+| `handInward` | `0` | Centimetres the hand and held item are moved towards the middle in 3D |
 | `cameraBobbing` | `false` | Vanilla view bobbing of the camera in 3D |
 | `damageTilt` | `false` | Camera roll when hurt or dying, in 3D |
 | `warpPercent` | `40` | Nausea and portal warp strength in 3D, % of vanilla's |
-| `hudDistance` | `1.35` | Metres at which the HUD and menus float; `0` = on the screen surface |
-| `crosshairAtTarget` | `true` | Crosshair at the depth of what it aims at within reach (`false` = with the HUD) |
-| `crosshairRestOffset` | `0` | Metres nearer (negative) or farther than your block reach where the crosshair rests with nothing in reach |
-| `handDepthPercent` | `100` | Depth of your hand and held item, % of the world's |
-| `handReach` | `30` | Centimetres the arm reaches further forward in 3D (as if longer); `0` = vanilla |
-| `handRaise` | `0` | Centimetres the hand and held item are raised in 3D |
-| `handInward` | `0` | Centimetres the hand and held item are moved towards the middle in 3D |
 | `hideCursor` | `true` | Hide the Windows cursor and draw one in both eyes |
 | `confineCursor` | `true` | Keep the cursor inside the game window while it is focused |
 
-If the game freezes while the cursor is confined, **Ctrl+Alt+Del** releases it.
-
 ## How it works
 
-Minecraft 26.2 extracts everything it draws into a render state once per frame, then renders from that state. Parallax
-Theater runs the render half twice: for each eye the main render target is swapped for a half-width eye target, the
-camera moves sideways by half the eye spacing, and the projection is shifted so things at the focus distance line up
-in both eyes. The two eye images are then drawn into the left and right halves of the window.
+Minecraft 26.2 extracts everything it draws into a render state once per frame, then renders from that state. The mod
+runs the render half twice, once per eye, with the camera moved sideways by half the eye spacing and the projection
+shifted so things at the focus distance line up. The eyes are packed side by side into one texture, which is handed by
+its OpenGL id to an OpenVR overlay flagged as side-by-side stereo; SteamVR copies it on the GPU and shows each half to
+one eye.
 
-Rendering the same frame twice exposes per-frame caches in the game and in other mods, which the mod works around:
-entity and particle lists kept for the second eye, Sodium's terrain matrices written per eye, the sky and clouds drawn
-into the right eye, a separate Iris pipeline and Voxy viewport per eye, and so on. `docs/DEV_NOTES.md` has the full
-list.
+SteamVR is called directly through Valve's `openvr_api.dll` (bundled, BSD licence) with Java's foreign function API:
+LWJGL's OpenVR bindings were last released for LWJGL 3.3 and don't load on the LWJGL 3.4 that Minecraft 26.2 ships.
+`docs/DEV_NOTES.md` has the details, and every two-renders-per-frame workaround (shared with Parallax Theater).
 
 ## Building
 
@@ -102,18 +104,15 @@ Mixin, LWJGL, JOML, Fabric Loader, Cloth Config, Mod Menu, Iris, Sodium, Voxy); 
 instances, adjust as needed:
 
 ```sh
-bash build.sh   # -> build/parallax-theater-<version>.jar
+bash build.sh   # -> build/parallax-screen-<version>.jar
 ```
-
-Iris, Sodium and Voxy are only compiled against; their integration loads only when they are installed.
 
 ## Tested with
 
-- Minecraft 26.2, Fabric Loader 0.19.5, Sodium 0.9.1, Iris 1.11.2 (BSL 10.1.8, Complementary Reimagined r5.9.3),
-  Voxy 0.2.19-beta, Sodium Extra, MoreCulling, Lithium, FerriteCore, BadOptimizations
-- Windows 11, AMD Radeon RX 9070 XT
-- Valve Steam Frame via Steam Link, viewing in Bigscreen Beta on a 2560x1440 monitor
+- Minecraft 26.2, Fabric Loader 0.19.5, Sodium 0.9.1, Iris 1.11.2 (BSL), Voxy 0.2.19-beta
+- Windows 11, AMD Radeon RX 9070 XT, SteamVR 2.18 (so far with SteamVR's null test headset; Valve Steam Frame via
+  Steam Link pending)
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). `openvr_api.dll` is Valve's, under the BSD licence in `natives/windows-x64/OPENVR_LICENSE.txt`.

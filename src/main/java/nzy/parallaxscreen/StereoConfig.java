@@ -27,8 +27,8 @@ public final class StereoConfig {
     private static final Path OLD_FILE = Path.of("config", "parallax-theater.properties");
     private static final String HEADER = String.join("\n",
         "Parallax Screen",
-        "enabled: render half side-by-side 3D (false = normal 2D)",
-        "renderScale: % of the half-window resolution each eye renders at (lower = faster, above 100 = sharper)",
+        "enabled: render in stereo 3D (false = normal 2D)",
+        "renderScale: in the window (no SteamVR screen), % of the half-window resolution each eye renders at (lower = faster)",
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
         "handReach: centimetres the hand and held item are pushed forward in 3D, as if the arm were longer",
