@@ -31,6 +31,11 @@ the hotbar was seen double whenever the eyes converged on the world/crosshair, a
 out of the screen and was cut off by its edges (frame violation). The user reported "doubling in the menus and in game
 hotbar and crosshair".
 
+Measured 0.1.3 (BSL, FOV 90, focus 4 m, depth 81%): menus, pause screen, creative inventory and tooltip 0.00 px and
+pixel-identical between the eyes apart from the blurred world behind; aimed at nothing (creative reach 5 m) hotbar
++1.0 px, crosshair +0.7 px (formula +0.9); aimed at grass 0.99 m away hotbar -14.7 px, crosshair -14.2 px (formula
+-14.2). Chat keeps the HUD depth. The user's dev instance has E/Q swapped (Q = inventory, E = drop).
+
 Crosshair depth (`StereoRenderer.updateCrosshairDepth`): within reach, the distance (along the view) to the game's
 own `hitResult` (block outline shape, so grass counts; entity hitboxes); with nothing in reach, the edge of the
 player's block reach (`Player.blockInteractionRange()`, 4.5 in survival) plus `crosshairRestOffset`. Eased over ~25 ms. History: 0.1.1 read the depth buffer under the
@@ -95,9 +100,7 @@ Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in 3D. Without s
 - Block-entity breaking overlay is positioned relative to the centre camera at extraction (tiny error, not fixed).
 - Hand depth at 100% is strong (about -52 px per eye for the held item); fine in testing, lower it if it strains.
 - Menu background blur showed a thin bright line at the left edge of each eye; menus now sit on the screen surface
-  (no shift) by default, which should remove it. Check in game.
-- 0.1.3 GUI changes were written while the user was playing and not yet tested in game: check menus, inventory
-  (item icons, player model), chat, title panorama, the hotbar following the crosshair depth, and that text in the
-  right eye is no longer darker/heavier than in the left (`disp2.py` + a pixel diff of the two halves).
+  (no shift) by default, which should remove it (not looked at closely yet).
+- Title screen / panorama with 0.1.3 not checked yet.
 - Voxy uses its original pipeline's uniform *values* for both eyes (camera position etc. of that eye); only
   draw targets follow the eye. No visible issue found.
