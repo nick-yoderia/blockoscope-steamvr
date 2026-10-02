@@ -1,114 +1,109 @@
-# NullVR Theater
+# Parallax Theater
 
 > **Alpha.** Built and tested on one setup (see [Tested with](#tested-with)). Expect rough edges.
 
-A small Fabric add-on for [Vivecraft](https://github.com/Vivecraft) that turns its **NullVR** mode
-(VR rendering without a headset) into a proper **side-by-side (SBS) 3D screen**. Show the game window on a
-virtual screen in your headset (for example in Bigscreen) and you get real stereoscopic depth without head
-tracking: moving your head moves your view of the screen, not the game camera.
+A Fabric mod that renders Minecraft in **half side-by-side (SBS) stereoscopic 3D**. Show the game window on a virtual
+screen in a headset (for example in Bigscreen) and you get real depth, like a 3D movie: moving your head moves your
+view of the screen, not the game camera. No VR mod is involved, so the game plays exactly like normal Minecraft:
+vanilla HUD, menus, animations and mouse.
 
-This is an unofficial add-on and is not affiliated with the Vivecraft project.
+It grew out of [NullVR Theater](https://github.com/nick-yoderia/nullvr-theater), which does the same through
+Vivecraft's NullVR mode. Parallax Theater drops Vivecraft and its VR-specific behaviour (VR body animations, floating
+HUD panels, VR comfort changes) and renders the vanilla game twice instead.
 
-## What it changes
+## Features
 
-Vivecraft's NullVR is a testing mode, so out of the box it is not comfortable to play this way:
+- **Stereo rendering:** every frame is drawn once per eye and packed into half side-by-side. Each eye renders at half
+  the window width, so the total pixel count is about the same as one normal frame.
+- **Depth controls:** depth strength (eye spacing, 100% = natural) and **focus distance**, the distance that sits
+  exactly on the screen surface (default 10 m). Nearer things pop out of the screen, farther things sit behind it.
+- **HUD and menus in depth:** the HUD and menus float at a set distance (default 1.35 m), with a cursor drawn in both
+  eyes in menus (the Windows cursor would only show in one).
+- **Crosshair at the depth of what you aim at,** so the crosshair and the target never double.
+- **Hand depth:** your hand and held item have real depth (adjustable, 0–200%).
+- **Comfort options:** camera bobbing and damage tilt are off by default in 3D (the hand still bobs), and nausea and
+  portal warp are toned down. Each can be turned back on.
+- **F9** switches between 3D and normal 2D at any time.
+- **Render scale** (25–200% of the half-window resolution) to trade sharpness for speed.
 
-| Problem in stock NullVR | What NullVR Theater does |
-|---|---|
-| Each eye is a fixed 2048x2048 square, so it never matches a monitor's shape | Each eye matches the monitor the game window is on (or a profile you choose), with a matching projection |
-| The NullVR FOV slider is vertical only | The slider can set the horizontal FOV instead (default) |
-| Turning is speed-based with a dead zone (seated "keyhole" forced to 1 degree), and horizontal loses mouse movement every frame, so it feels sluggish next to vertical; the vanilla mouse sensitivity slider is ignored | 1:1 aiming that follows the vanilla Mouse Sensitivity slider, exact and equal on both axes |
-| In menus the Windows cursor is drawn over the SBS window, so it shows in one eye only | The Windows cursor is hidden over the game window and kept inside it while the game is focused |
-| FOV effects (sprinting, Speed, bows, spyglass) are disabled in VR | FOV effects work again, scaled by the vanilla FOV Effects slider |
-| The seated HUD floats straight ahead, so the hotbar sits near the middle of the view | **HUD height** lowers the HUD (hotbar) toward the bottom of the view, plus HUD size and distance |
-| Depth can only be set through Vivecraft's NullVR IPD (5 cm minimum), and everything pops out in front of the screen | **Depth strength** (0-300%, down to flat) and **Focus distance** (which distance sits at the screen surface) |
-| All settings live in config files | An in-game settings screen in Mod Menu; saving applies changes immediately |
+### Works with
+
+- **Sodium**
+- **Iris** shader packs (tested with BSL and Complementary Reimagined). Each eye gets its own shader pipeline, so
+  temporal effects (TAA, clouds, previous-frame data) never mix the two eyes.
+- **Voxy** distant terrain, with and without shader packs.
+- Mod Menu + Cloth Config for the settings screen.
+
+Every 3D correctness issue found so far was measured on screenshots: blocks, entities, particles, clouds, sky, Voxy
+terrain, the hand and the crosshair all line up with the depth they should have in both eyes.
 
 ## Requirements
 
 - Minecraft **26.2** with Fabric Loader
-- **Vivecraft** for 26.2 (tested with `26.2-1.3.15`)
-- Recommended: [Mod Menu](https://modrinth.com/mod/modmenu) and [Cloth Config](https://modrinth.com/mod/cloth-config) for the in-game settings screen
-- Windows (cursor confinement uses the Windows API; everything else is cross-platform but untested)
+- Recommended: [Mod Menu](https://modrinth.com/mod/modmenu) and [Cloth Config](https://modrinth.com/mod/cloth-config)
+- Not compatible with Vivecraft (use NullVR Theater for that)
+- Windows for cursor confinement (everything else is cross-platform but untested)
 
 ## Setup
 
-1. Put `nullvr-theater-<version>.jar` in your `mods` folder next to Vivecraft.
-2. In Vivecraft, open **VR Settings > Stereo Rendering** and set:
-   - **VR Plugin**: `NullVR`
-   - **Desktop Mirror**: `Dual` (other mirror modes break the SBS layout)
-3. Turn VR on from the title screen and run Minecraft **fullscreen on a 16:9 monitor**.
-4. In your viewer, share that monitor and enable **half side-by-side** 3D.
-   In Bigscreen that is the SBS toggle; the shared monitor must be the main display, and 21:9 ultrawide
-   monitors do not work with Bigscreen's SBS mode.
+1. Put `parallax-theater-<version>.jar` in your `mods` folder.
+2. Run Minecraft **fullscreen on a 16:9 monitor**.
+3. In your viewer, share that monitor and enable **half side-by-side** 3D. In Bigscreen that is the SBS toggle; the
+   shared monitor must be the main display (21:9 ultrawide monitors don't work with Bigscreen's SBS mode).
 
-If the depth looks inside-out, turn on **Dual Mirror Swap** in Vivecraft's Stereo Rendering settings.
+If the depth looks inside-out, turn on **Swap eyes**.
 
-## Configuration
+## Settings
 
-Open **Mods > NullVR Theater > settings** in game. Settings are grouped into **Display**, **Depth**, **HUD**
-and **Mouse & Cursor**, and pressing **Save** applies them immediately (eye size, field of view and depth
-included), without toggling VR. The Display tab also has Vivecraft's NullVR field of view, the side-by-side
-mirror (Dual for 3D, Cropped for one eye), Swap eyes and the FOV effects toggle. The HUD tab also has
-Vivecraft's HUD size and distance; setting the HUD distance to your focus distance puts the HUD on the screen
-surface.
-
-Everything is stored in `config/nullvr-theater.properties`, which can also be edited by hand; it is
-re-read every time NullVR starts.
+**Mods > Parallax Theater** (needs Mod Menu and Cloth Config). Saving applies changes immediately. Everything is also
+stored in `config/parallax-theater.properties`:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `mode` | `auto` | `auto` sizes each eye to the monitor the game window is on; otherwise the name of a profile |
-| `profile.<name>` | `standard=2560x1440`, `hd=1920x1080`, `square=2048x2048` | Size of **one** eye. Add as many as you like |
-| `scale` | `1.0` | Multiplies the eye size (e.g. `0.75` for more FPS, same shape) |
-| `fovIsHorizontal` | `true` | The NullVR FOV slider sets the horizontal FOV (`false` = Vivecraft's vertical behaviour) |
+| `enabled` | `true` | 3D on (F9 toggles it) |
+| `renderScale` | `100` | % of the half-window resolution each eye renders at |
 | `depthPercent` | `100` | 3D strength as a % of average eye spacing (6.4 cm); `0` = flat |
-| `focusDistance` | `0` | Metres that sit exactly at the screen surface; `0` = infinity (everything in front of the screen) |
-| `fovEffects` | `true` | Vanilla FOV changes (sprinting, Speed, bows, spyglass), scaled by the vanilla FOV Effects slider |
-| `hudHeight` | `-12` | Degrees to tilt the in-game HUD from straight ahead; negative = lower. `0` = Vivecraft's placement |
-| `vanillaMouse` | `true` | 1:1 aiming from the vanilla Mouse Sensitivity slider (`false` = Vivecraft's seated aiming) |
-| `hideCursor` | `true` | Hide the Windows cursor over the game window |
+| `focusDistance` | `10` | Metres that sit exactly on the screen surface; `0` = infinity |
+| `swapEyes` | `false` | Right eye on the left half (cross-eyed order) |
+| `cameraBobbing` | `false` | Vanilla view bobbing of the camera in 3D |
+| `damageTilt` | `false` | Camera roll when hurt or dying, in 3D |
+| `warpPercent` | `40` | Nausea and portal warp strength in 3D, % of vanilla's |
+| `hudDistance` | `1.35` | Metres at which the HUD and menus float; `0` = on the screen surface |
+| `crosshairAtTarget` | `true` | Crosshair at the depth of what it points at (`false` = with the HUD) |
+| `handDepthPercent` | `100` | Depth of your hand and held item, % of the world's |
+| `hideCursor` | `true` | Hide the Windows cursor and draw one in both eyes |
 | `confineCursor` | `true` | Keep the cursor inside the game window while it is focused |
-
-Setting `mode` to a square profile with `fovIsHorizontal=false`, `vanillaMouse=false`, `focusDistance=0`,
-`fovEffects=false` and `hudHeight=0` gives stock NullVR rendering and aiming.
 
 If the game freezes while the cursor is confined, **Ctrl+Alt+Del** releases it.
 
 ## How it works
 
-The mod only touches Vivecraft classes (plus GLFW and the Windows cursor API), using Mixin:
+Minecraft 26.2 extracts everything it draws into a render state once per frame, then renders from that state. Parallax
+Theater runs the render half twice: for each eye the main render target is swapped for a half-width eye target, the
+camera moves sideways by half the eye spacing, and the projection is shifted so things at the focus distance line up
+in both eyes. The two eye images are then drawn into the left and right halves of the window.
 
-- `NullVRStereoRenderer.getRenderTextureSizes()`: replaces the hard-coded `2048x2048` eye size.
-- `NullVRStereoRenderer.getProjectionMatrix()`: replaces the hard-coded aspect ratio of `1`, optionally
-  converts the FOV slider from vertical to horizontal, applies FOV effects, and shifts each eye's frustum for
-  the focus distance.
-- `NullVR.getIPD()`: returns the eye spacing from the depth strength.
-- `NullVR.poll()`: per frame, hides and confines the cursor, eases FOV effects the way vanilla does, and maps
-  the vanilla sensitivity onto Vivecraft's seated aim (vertical).
-- `MCVR.updateAim()`: turns horizontally by the exact cursor movement each frame and re-centres the cursor on a
-  whole pixel, instead of Vivecraft's keyhole, which drops movement every frame.
-- `GuiHandler.extractGui()`: tilts the in-game HUD panel down by the HUD height.
-
-The Dual mirror stretches each eye into half of the window, so an eye rendered at the monitor's shape ends up
-squeezed to half width, which is exactly what half-SBS viewers expect to stretch back out.
-
-These hooks target Vivecraft internals by name and require them to exist, so a Vivecraft update that changes
-them stops the game with a clear Mixin error instead of rendering incorrectly.
+Rendering the same frame twice exposes per-frame caches in the game and in other mods, which the mod works around:
+entity and particle lists kept for the second eye, Sodium's terrain matrices written per eye, the sky and clouds drawn
+into the right eye, a separate Iris pipeline and Voxy viewport per eye, and so on. `docs/DEV_NOTES.md` has the full
+list.
 
 ## Building
 
-No Gradle needed. `build.sh` compiles with the JDK bundled with Prism Launcher against the Mixin, LWJGL,
-JOML, Minecraft, Vivecraft, Cloth Config and Mod Menu jars already on disk (paths are set for a Prism instance named `26.2`; adjust as
-needed):
+No Gradle. `build.sh` compiles with the JDK bundled with Prism Launcher against jars already on disk (Minecraft,
+Mixin, LWJGL, JOML, Fabric Loader, Cloth Config, Mod Menu, Iris, Sodium, Voxy); paths are set for the author's Prism
+instances, adjust as needed:
 
 ```sh
-bash build.sh   # -> build/nullvr-theater-<version>.jar
+bash build.sh   # -> build/parallax-theater-<version>.jar
 ```
+
+Iris, Sodium and Voxy are only compiled against; their integration loads only when they are installed.
 
 ## Tested with
 
-- Minecraft 26.2, Fabric Loader 0.19.5, Vivecraft 26.2-1.3.15, Sodium 0.9.1, Iris 1.11.2, Voxy 0.2.19-beta
+- Minecraft 26.2, Fabric Loader 0.19.5, Sodium 0.9.1, Iris 1.11.2 (BSL 10.1.8, Complementary Reimagined r5.9.3),
+  Voxy 0.2.19-beta, Sodium Extra, MoreCulling, Lithium, FerriteCore, BadOptimizations
 - Windows 11, AMD Radeon RX 9070 XT
 - Valve Steam Frame via Steam Link, viewing in Bigscreen Beta on a 2560x1440 monitor
 

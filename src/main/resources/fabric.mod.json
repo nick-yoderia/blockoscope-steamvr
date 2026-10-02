@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "id": "stereo_theater",
-  "version": "0.1.0-dev",
-  "name": "Stereo Theater",
+  "id": "parallax_theater",
+  "version": "0.1.0-alpha",
+  "name": "Parallax Theater",
   "description": "Renders Minecraft in half side-by-side stereoscopic 3D for viewing on a virtual screen, with no VR mod needed.",
   "authors": [
     "Nick Y"
   ],
   "contact": {
-    "sources": "https://github.com/nick-yoderia/nullvr-theater",
-    "issues": "https://github.com/nick-yoderia/nullvr-theater/issues"
+    "sources": "https://github.com/nick-yoderia/parallax-theater",
+    "issues": "https://github.com/nick-yoderia/parallax-theater/issues"
   },
   "license": "MIT",
-  "icon": "assets/stereo_theater/icon.png",
+  "icon": "assets/parallax_theater/icon.png",
   "environment": "client",
   "entrypoints": {
     "modmenu": [
-      "nzy.stereotheater.StereoModMenu"
+      "nzy.parallaxtheater.StereoModMenu"
     ]
   },
   "mixins": [
-    "stereotheater.mixins.json",
-    "stereotheater.compat.mixins.json"
+    "parallaxtheater.mixins.json",
+    "parallaxtheater.compat.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.15.0",
