@@ -13,7 +13,8 @@
     "KeyboardHandlerMixin",
     "LevelRendererMixin",
     "MinecraftMixin",
-    "QuadParticleRenderStateMixin"
+    "QuadParticleRenderStateMixin",
+    "SkyRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
