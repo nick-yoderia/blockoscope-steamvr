@@ -140,11 +140,11 @@ Tools in `..\mcdev` (outside the repo):
 - `cycle-screen.ps1 -Shot name`: close the **26.2-Screen-Dev** instance (a copy of 26.2-Stereo-Dev, the Parallax
   Theater test instance), install the built jar, launch into the world, screenshot. (`cycle.ps1` is Parallax Theater's.)
 - SteamVR without a headset: the user's `steamvr.vrsettings` must not be changed (the permission system refused it).
-  Instead `mcdevrtest\config\steamvr.vrsettings` forces SteamVR's null driver, and SteamVR is pointed at that
-  folder with `VR_CONFIG_PATH` (logs: `VR_LOG_PATH=mcdevrtest\logs`). The game sets those variables itself before
+  Instead `mcdev\vrtest\config\steamvr.vrsettings` forces SteamVR's null driver, and SteamVR is pointed at that
+  folder with `VR_CONFIG_PATH` (logs: `VR_LOG_PATH=mcdev\vrtest\logs`). The game sets those variables itself before
   connecting when `config/parallax-screen.vrenv` (KEY=VALUE lines, development only) exists in the instance; to start
   SteamVR by hand use PowerShell with `$env:VR_CONFIG_PATH`/`$env:VR_LOG_PATH` set and
-  `Start-Process ...\SteamVRin\win64rstartup.exe`. The null headset's view is the compositor's "Headset Window"
+  `Start-Process ...\SteamVR\bin\win64\vrstartup.exe`. The null headset's view is the compositor's "Headset Window"
   (`winshot.ps1 -Process vrcompositor` captures it with PrintWindow; not while the PC is locked). Quit it by closing
   the `vrmonitor` window. SteamVR's stereo screenshot (`vrshot\VrShot.java`) fails without a scene app.
 - `cmd.ps1 -Commands @('time set noon', ...)`: chat commands via the clipboard; `keys.ps1 -Keys @('{F9}')`.
