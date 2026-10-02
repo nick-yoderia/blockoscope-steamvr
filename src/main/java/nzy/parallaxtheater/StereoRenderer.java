@@ -10,12 +10,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.client.Camera;
 import nzy.parallaxtheater.mixin.CameraAccessor;
 import nzy.parallaxtheater.mixin.GameRendererAccessor;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
 /**
@@ -140,7 +142,7 @@ public final class StereoRenderer {
 
         CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
         Camera mainCamera = gameRenderer.mainCamera();
-        updateCrosshairDepth();
+        updateCrosshairDepth(mainCamera);
         Vec3 centre = camera.pos;
         Vec3 mainCentre = mainCamera.position();
         Matrix4f projection = camera.projectionMatrix == null ? null : new Matrix4f(camera.projectionMatrix);
@@ -257,15 +259,28 @@ public final class StereoRenderer {
         return new Matrix4f().translation(offset, 0f, 0f).mul(projection);
     }
 
-    /** Eases the crosshair towards the depth of what it points at (see {@link CrosshairDepth}). */
-    private static void updateCrosshairDepth() {
+    /**
+     * Moves the crosshair to the depth of what it aims at: the point on the block's outline or the entity's hitbox the
+     * game picks (so grass counts, not what is behind it), within reach. With nothing in reach it snaps to the crosshair
+     * distance setting (default: the screen surface), rather than following far-away scenery.
+     */
+    private static void updateCrosshairDepth(Camera camera) {
         long now = System.nanoTime();
         float seconds = lastCrosshairNanos == 0L ? 1f : (now - lastCrosshairNanos) / 1.0e9f;
         lastCrosshairNanos = now;
-        float focus = StereoConfig.focusDistance();
-        float target = CrosshairDepth.targetInverseDistance(seconds, focus > 0f ? 1f / focus : 0f);
-        // A few frames of easing, so the crosshair doesn't jitter along block edges.
-        crosshairInverseDistance += (target - crosshairInverseDistance) * (1f - (float) Math.exp(-seconds / 0.06f));
+        float target = 1f / StereoConfig.crosshairRestDistance();
+        HitResult hit = Minecraft.getInstance().hitResult;
+        if (camera != null && hit != null && hit.getType() != HitResult.Type.MISS) {
+            Vec3 from = camera.position();
+            Vector3fc forward = camera.forwardVector();
+            double distance = hit.getLocation().subtract(from).dot(new Vec3(forward.x(), forward.y(), forward.z()));
+            target = (float) (1.0 / Math.max(0.3, distance));
+        }
+        // A couple of frames of easing, so it snaps without flickering along block edges.
+        crosshairInverseDistance += (target - crosshairInverseDistance) * (1f - (float) Math.exp(-seconds / 0.025f));
+        if (StereoDebug.ENABLED && eyePassCounter % 240 == 0) {
+            StereoDebug.log("crosshair " + (hit == null ? "none" : hit.getType()) + " distance " + 1f / target);
+        }
     }
 
     /** The GUI's sideways shift in this eye, in clip space. */

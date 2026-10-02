@@ -96,8 +96,15 @@ public final class StereoConfigScreen {
         hud.addEntry(entries.startBooleanToggle(Component.literal("Crosshair depth"), StereoConfig.crosshairAtTarget())
             .setDefaultValue(true)
             .setYesNoTextSupplier(on -> Component.literal(on ? "At target" : "With HUD"))
-            .setTooltip(Component.literal("At target = depth of what you aim at."))
+            .setTooltip(Component.literal("At target = what you aim at, in reach."))
             .setSaveConsumer(StereoConfig::setCrosshairAtTarget)
+            .build());
+
+        hud.addEntry(entries.startIntSlider(Component.literal("Crosshair rest"), Math.round(StereoConfig.crosshairDistance()), 0, 64)
+            .setDefaultValue(0)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Screen" : value + " m"))
+            .setTooltip(Component.literal("Depth when nothing is in reach."))
+            .setSaveConsumer(value -> StereoConfig.setCrosshairDistance(value))
             .build());
 
         hud.addEntry(entries.startIntSlider(Component.literal("Arm reach"), StereoConfig.handReach(), 0, 60)

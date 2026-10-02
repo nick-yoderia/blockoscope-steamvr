@@ -19,9 +19,9 @@ HUD panels, VR comfort changes) and renders the vanilla game twice instead.
   exactly on the screen surface (default 10 m). Nearer things pop out of the screen, farther things sit behind it.
 - **HUD and menus in depth:** the HUD and menus float at a set distance (default 1.35 m), with a cursor drawn in both
   eyes in menus (the Windows cursor would only show in one).
-- **Crosshair at the depth of what you aim at,** read from what is actually drawn under it (terrain at any
-  distance, entities, Voxy's distant terrain), so the crosshair and the target never double. Over the sky it holds
-  the last depth and eases to the screen surface instead of jumping to infinity.
+- **Crosshair at the depth of what you aim at:** within reach it sits on the block or entity you are targeting
+  (hitbox based, so on the grass, not what is behind it), so the crosshair and the target never double. With nothing
+  in reach it snaps to a rest distance (default: the screen surface).
 - **Hand depth:** your hand and held item have real depth (adjustable, 0–200%), and in 3D the arm reaches a little
   further forward so more of what you hold is in view (Arm reach, plus optional raise/inward offsets).
 - **Comfort options:** camera bobbing and damage tilt are off by default in 3D (the hand still bobs), and nausea and
@@ -72,7 +72,8 @@ stored in `config/parallax-theater.properties`:
 | `damageTilt` | `false` | Camera roll when hurt or dying, in 3D |
 | `warpPercent` | `40` | Nausea and portal warp strength in 3D, % of vanilla's |
 | `hudDistance` | `1.35` | Metres at which the HUD and menus float; `0` = on the screen surface |
-| `crosshairAtTarget` | `true` | Crosshair at the depth of what it points at (`false` = with the HUD) |
+| `crosshairAtTarget` | `true` | Crosshair at the depth of what it aims at within reach (`false` = with the HUD) |
+| `crosshairDistance` | `0` | Metres for the crosshair with nothing in reach; `0` = the screen surface |
 | `handDepthPercent` | `100` | Depth of your hand and held item, % of the world's |
 | `handReach` | `30` | Centimetres the arm reaches further forward in 3D (as if longer); `0` = vanilla |
 | `handRaise` | `0` | Centimetres the hand and held item are raised in 3D |
