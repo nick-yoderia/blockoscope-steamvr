@@ -243,13 +243,14 @@ public final class VrScreen {
         try {
             boolean flip = StereoConfig.flipScreen();
             if (!boundsSet || flip != appliedFlip) {
-                // OpenGL textures start at the bottom row, so v runs from 1 at the top to 0 at the bottom.
+                // SteamVR accounts for OpenGL's bottom-up rows itself (Vivecraft submits Minecraft's GL eye textures
+                // with plain 0..1 bounds); the setting flips it in case a SteamVR version doesn't.
                 boundsSet = true;
                 appliedFlip = flip;
                 BOUNDS.setAtIndex(JAVA_FLOAT, 0, 0f);
-                BOUNDS.setAtIndex(JAVA_FLOAT, 1, flip ? 0f : 1f);
+                BOUNDS.setAtIndex(JAVA_FLOAT, 1, flip ? 1f : 0f);
                 BOUNDS.setAtIndex(JAVA_FLOAT, 2, 1f);
-                BOUNDS.setAtIndex(JAVA_FLOAT, 3, flip ? 1f : 0f);
+                BOUNDS.setAtIndex(JAVA_FLOAT, 3, flip ? 0f : 1f);
                 OpenVrApi.setOverlayTextureBounds(overlay, BOUNDS);
             }
             TEXTURE.set(JAVA_LONG, 0, gl.glId());
