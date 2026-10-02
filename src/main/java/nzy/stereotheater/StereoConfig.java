@@ -18,6 +18,7 @@ public final class StereoConfig {
         "enabled: render half side-by-side 3D (false = normal 2D)",
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
+        "hudDistance: metres at which the HUD and menus float; 0 = on the screen surface",
         "swapEyes: put the right eye on the left half (for viewers that expect cross-eyed order)",
         "hideCursor: hide the Windows cursor over the game window and draw one in both eyes instead",
         "confineCursor: keep the cursor inside the game window while it is focused");
@@ -25,6 +26,7 @@ public final class StereoConfig {
     private static boolean enabled = true;
     private static int depthPercent = 100;
     private static float focusDistance = 4f;
+    private static float hudDistance = 1.35f;
     private static boolean swapEyes = false;
     private static boolean hideCursor = true;
     private static boolean confineCursor = true;
@@ -38,6 +40,7 @@ public final class StereoConfig {
     public static boolean enabled() { return enabled; }
     public static int depthPercent() { return depthPercent; }
     public static float focusDistance() { return focusDistance; }
+    public static float hudDistance() { return hudDistance; }
     public static boolean swapEyes() { return swapEyes; }
     public static boolean hideCursor() { return hideCursor; }
     public static boolean confineCursor() { return confineCursor; }
@@ -45,6 +48,7 @@ public final class StereoConfig {
     public static void setEnabled(boolean value) { enabled = value; }
     public static void setDepthPercent(int value) { depthPercent = Math.max(0, Math.min(300, value)); }
     public static void setFocusDistance(float value) { focusDistance = Math.max(0f, value); }
+    public static void setHudDistance(float value) { hudDistance = Math.max(0f, value); }
     public static void setSwapEyes(boolean value) { swapEyes = value; }
     public static void setHideCursor(boolean value) { hideCursor = value; }
     public static void setConfineCursor(boolean value) { confineCursor = value; }
@@ -66,6 +70,7 @@ public final class StereoConfig {
         enabled = parseBoolean(props.getProperty("enabled"), true);
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
         setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 4));
+        setHudDistance((float) parseDouble(props.getProperty("hudDistance"), 1.35));
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
         hideCursor = parseBoolean(props.getProperty("hideCursor"), true);
         confineCursor = parseBoolean(props.getProperty("confineCursor"), true);
@@ -77,6 +82,7 @@ public final class StereoConfig {
         out.setProperty("enabled", String.valueOf(enabled));
         out.setProperty("depthPercent", String.valueOf(depthPercent));
         out.setProperty("focusDistance", String.valueOf(focusDistance));
+        out.setProperty("hudDistance", String.valueOf(hudDistance));
         out.setProperty("swapEyes", String.valueOf(swapEyes));
         out.setProperty("hideCursor", String.valueOf(hideCursor));
         out.setProperty("confineCursor", String.valueOf(confineCursor));

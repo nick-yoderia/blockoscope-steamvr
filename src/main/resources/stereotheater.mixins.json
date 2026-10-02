@@ -8,6 +8,7 @@
     "GameRendererMixin",
     "GuiMixin",
     "GuiRendererMixin",
+    "LevelRendererMixin",
     "MinecraftMixin"
   ],
   "injectors": {

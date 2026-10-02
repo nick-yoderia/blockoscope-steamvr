@@ -1,11 +1,15 @@
 package nzy.stereotheater.mixin;
 
 import com.mojang.blaze3d.resource.CrossFrameResourcePool;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import net.minecraft.client.gui.render.GuiRenderer;
+import net.minecraft.client.renderer.Projection;
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderBuffers;
 import net.minecraft.client.renderer.fog.FogRenderer;
 import nzy.stereotheater.StereoRenderer;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -62,5 +66,14 @@ public abstract class GameRendererMixin {
         if (!StereoRenderer.isFirstEye()) {
             fog.endFrame();
         }
+    }
+
+    @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lnet/minecraft/client/renderer/Projection;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"))
+    private GpuBufferSlice stereoTheater$handProjection(ProjectionMatrixBuffer buffer, Projection projection) {
+        if (!StereoRenderer.isRendering()) {
+            return buffer.getBuffer(projection);
+        }
+        return buffer.getBuffer(StereoRenderer.eyeHandProjection(projection.getMatrix(new Matrix4f())));
     }
 }

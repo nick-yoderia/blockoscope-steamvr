@@ -38,6 +38,8 @@ public final class StereoRenderer {
     private static int eyeWidth;
     private static int windowWidth;
     private static String lastReason = "";
+    /** Horizontal scale of the world projection (m00) this frame, used to give the GUI matching disparity. */
+    private static float worldProjectionScale = 1f;
 
     private StereoRenderer() {}
 
@@ -66,7 +68,9 @@ public final class StereoRenderer {
 
     /** Replaces GameRenderer.render(deltaTracker, renderLevel) in Minecraft.renderFrame. */
     public static void render(GameRenderer gameRenderer, DeltaTracker deltaTracker, boolean renderLevel) {
+        ToggleKey.poll();
         CursorControl.update();
+        logFps();
         WindowRenderState window = gameRenderer.gameRenderState().windowRenderState;
         int width = window.width;
         int height = window.height;
@@ -94,6 +98,8 @@ public final class StereoRenderer {
         GameRendererAccessor access = (GameRendererAccessor) gameRenderer;
         windowWidth = width;
         eyeWidth = halfWidth;
+        worldProjectionScale = projection != null ? projection.m00()
+            : (float) (1.0 / ((double) width / height * Math.tan(Math.toRadians(35.0))));
         try {
             for (int i = LEFT; i <= RIGHT; i++) {
                 eye = i;
@@ -116,6 +122,60 @@ public final class StereoRenderer {
         int leftHalf = StereoConfig.swapEyes() ? RIGHT : LEFT;
         EyeBlit.draw(encoder, targets[leftHalf], main, 0);
         EyeBlit.draw(encoder, targets[1 - leftHalf], main, 1);
+    }
+
+    private static long lastFpsLog;
+
+    private static void logFps() {
+        long now = System.currentTimeMillis();
+        if (now - lastFpsLog >= 5000L) {
+            lastFpsLog = now;
+            System.out.println("[Stereo Theater] fps " + Minecraft.getInstance().getFps()
+                + (StereoConfig.enabled() ? " (3D)" : " (2D)"));
+        }
+    }
+
+    /** -1 for the left eye, +1 for the right eye (0 outside the stereo render). */
+    private static float side() {
+        return eye == LEFT ? -1f : eye == RIGHT ? 1f : 0f;
+    }
+
+    /**
+     * The first-person hand and held item use their own projection with the camera at the origin. Gives it the same
+     * eye offset and focus shear as the world, so it has real depth instead of sitting on the screen surface.
+     */
+    public static Matrix4f eyeHandProjection(Matrix4f projection) {
+        float halfIpd = StereoConfig.ipd() / 2f;
+        float side = side();
+        float focus = StereoConfig.focusDistance();
+        if (focus > 0f) {
+            projection.m20(projection.m20() - side * projection.m00() * halfIpd / focus);
+        }
+        return projection.translate(-side * halfIpd, 0f, 0f);
+    }
+
+    /**
+     * Shifts the GUI sideways in each eye so it appears at the HUD distance: the same disparity a point straight
+     * ahead at that distance gets in the world.
+     */
+    public static Matrix4f eyeGuiProjection(Matrix4f projection) {
+        return new Matrix4f().translation(guiOffset(), 0f, 0f).mul(projection);
+    }
+
+    /** The GUI's sideways shift in this eye, in eye target pixels (for scissor rectangles). */
+    public static float guiOffsetPixels() {
+        return guiOffset() * eyeWidth / 2f;
+    }
+
+    /** The GUI's sideways shift in this eye, in clip space. */
+    private static float guiOffset() {
+        float hudDistance = StereoConfig.hudDistance();
+        if (eye == NONE || hudDistance <= 0f) {
+            return 0f;
+        }
+        float focus = StereoConfig.focusDistance();
+        float inverseFocus = focus > 0f ? 1f / focus : 0f;
+        return side() * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - 1f / hudDistance);
     }
 
     /**
