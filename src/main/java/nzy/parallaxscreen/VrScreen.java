@@ -3,19 +3,14 @@ package nzy.parallaxscreen;
 import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.textures.GpuTexture;
-import org.lwjgl.openvr.HmdMatrix34;
-import org.lwjgl.openvr.OpenVR;
-import org.lwjgl.openvr.Texture;
-import org.lwjgl.openvr.TrackedDevicePose;
-import org.lwjgl.openvr.VR;
-import org.lwjgl.openvr.VREvent;
-import org.lwjgl.openvr.VROverlay;
-import org.lwjgl.openvr.VRSystem;
-import org.lwjgl.openvr.VRTextureBounds;
-import org.lwjgl.system.MemoryStack;
 
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 /**
  * The virtual screen in SteamVR: an OpenVR overlay that shows the two eyes side by side, one per eye.
@@ -23,23 +18,36 @@ import java.nio.LongBuffer;
  * Minecraft runs as an OpenVR overlay application, not a VR game: SteamVR keeps drawing its own scene (SteamVR Home or
  * the void) and composites the screen into it at the headset's frame rate, so head movement stays smooth whatever the
  * game's frame rate is. The packed texture (left eye in the left half) is handed over by its OpenGL id every frame;
- * SteamVR copies it, so nothing is read back to the CPU.
+ * SteamVR copies it on the GPU, so nothing is read back to the CPU.
  */
 public final class VrScreen {
     private static final String OVERLAY_KEY = "nzy.parallaxscreen.screen";
-    /** Seconds between attempts to reach SteamVR while it isn't available. */
-    private static final long RETRY_NANOS = 10_000_000_000L;
+    /** Time between attempts to reach SteamVR while it isn't available. */
+    private static final long RETRY_NANOS = 5_000_000_000L;
 
     private static boolean started;
     private static long overlay;
     private static long lastAttemptNanos;
-    private static boolean attempted;
+    /** Set by the connecting thread; picked up on the render thread. */
+    private static volatile boolean connecting;
+    private static volatile boolean connected;
     private static boolean placed;
     private static boolean recenterRequested;
-    private static String lastError = "";
-    private static Texture texture;
-    private static VREvent event;
+    private static volatile String lastError = "";
     private static boolean warnedNotOpenGl;
+    private static boolean shutdownHookAdded;
+    private static float appliedWidth = Float.NaN;
+    private static float appliedCurvature = Float.NaN;
+    private static boolean appliedFlip;
+    private static boolean boundsSet;
+
+    /** Native structs reused every frame (Texture_t, VRTextureBounds_t, VREvent_t, poses, HmdMatrix34_t). */
+    private static final Arena ARENA = Arena.ofAuto();
+    private static final MemorySegment TEXTURE = ARENA.allocate(16, 8);
+    private static final MemorySegment BOUNDS = ARENA.allocate(16, 4);
+    private static final MemorySegment EVENT = ARENA.allocate(OpenVrApi.EVENT_SIZE, 8);
+    private static final MemorySegment POSES = ARENA.allocate((long) OpenVrApi.POSE_SIZE * OpenVrApi.MAX_DEVICES, 8);
+    private static final MemorySegment TRANSFORM = ARENA.allocate(48, 4);
 
     private VrScreen() {}
 
@@ -61,124 +69,155 @@ public final class VrScreen {
             }
             return;
         }
+        if (connected) {
+            connected = false;
+            finishStart();
+        }
         if (!started) {
             long now = System.nanoTime();
-            if (lastAttemptNanos != 0L && now - lastAttemptNanos < RETRY_NANOS) {
+            if (connecting || lastAttemptNanos != 0L && now - lastAttemptNanos < RETRY_NANOS) {
                 return;
             }
             lastAttemptNanos = now;
-            start();
+            connecting = true;
+            Thread thread = new Thread(VrScreen::connect, "Parallax Screen SteamVR connect");
+            thread.setDaemon(true);
+            thread.start();
             return;
         }
-        pollEvents();
-        if (!started) {
-            return;
-        }
-        if (!placed || recenterRequested) {
-            placed = place();
-            recenterRequested = false;
+        try {
+            pollEvents();
+            if (!started) {
+                return;
+            }
+            applyShape();
+            if (!placed || recenterRequested) {
+                placed = place();
+                recenterRequested = false;
+            }
+        } catch (Throwable t) {
+            logOnce("SteamVR screen error: " + t);
+            stop("error");
         }
     }
 
-    private static void start() {
+    /**
+     * Connects to SteamVR and creates the overlay, off the render thread: starting SteamVR can take several seconds,
+     * which would freeze the game. Only connects when a headset is there, since connecting launches SteamVR, which
+     * without a headset only shows an error; so playing on the monitor never starts it.
+     */
+    private static void connect() {
         try {
-            if (!VR.VR_IsRuntimeInstalled()) {
-                logOnce("SteamVR is not installed");
+            OpenVrApi.load();
+            if (!OpenVrApi.isRuntimeInstalled()) {
+                logOnce("SteamVR is not installed; showing side-by-side in the window");
                 return;
             }
-            // Starting an overlay application launches SteamVR if needed; without a headset that only shows an
-            // error in SteamVR, so after the first try only try again once a headset is there.
-            if (attempted && !VR.VR_IsHmdPresent()) {
+            if (!OpenVrApi.isHmdPresent()) {
+                logOnce("No VR headset found; showing side-by-side in the window (checking again every few seconds)");
                 return;
             }
-            attempted = true;
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                IntBuffer error = stack.mallocInt(1);
-                int token = VR.VR_InitInternal(error, VR.EVRApplicationType_VRApplication_Overlay);
-                if (error.get(0) != 0) {
-                    logOnce("SteamVR is not available (" + VR.VR_GetVRInitErrorAsEnglishDescription(error.get(0))
-                        + "); showing side-by-side in the window instead");
-                    return;
-                }
-                OpenVR.create(token);
-                LongBuffer handle = stack.mallocLong(1);
-                int result = VROverlay.VROverlay_CreateOverlay(OVERLAY_KEY, "Parallax Screen", handle);
-                if (result != VR.EVROverlayError_VROverlayError_None) {
-                    logOnce("Could not create the SteamVR screen: " + VROverlay.VROverlay_GetOverlayErrorNameFromEnum(result));
-                    VR.VR_ShutdownInternal();
-                    return;
-                }
-                overlay = handle.get(0);
+            String error = OpenVrApi.init();
+            if (error != null) {
+                logOnce("SteamVR is not available (" + error + "); showing side-by-side in the window");
+                return;
             }
-            VROverlay.VROverlay_SetOverlayFlag(overlay, VR.VROverlayFlags_SideBySide_Parallel, true);
+            try {
+                overlay = OpenVrApi.createOverlay(OVERLAY_KEY, "Parallax Screen");
+            } catch (IllegalStateException e) {
+                logOnce("Could not create the SteamVR screen: " + e.getMessage());
+                OpenVrApi.shutdown();
+                return;
+            }
+            connected = true;
+        } catch (Throwable t) {
+            logOnce("SteamVR could not be started: " + t);
+        } finally {
+            connecting = false;
+        }
+    }
+
+    /** Back on the render thread once connected: sets the screen up and shows it. */
+    private static void finishStart() {
+        started = true;
+        try {
+            OpenVrApi.setOverlayFlag(overlay, OpenVrApi.OVERLAY_FLAG_SIDE_BY_SIDE_PARALLEL, true);
             // The GUI leaves alpha below 1 in places; the screen is opaque.
-            VROverlay.VROverlay_SetOverlayFlag(overlay, VR.VROverlayFlags_IgnoreTextureAlpha, true);
+            OpenVrApi.setOverlayFlag(overlay, OpenVrApi.OVERLAY_FLAG_IGNORE_TEXTURE_ALPHA, true);
+            appliedWidth = Float.NaN;
+            appliedCurvature = Float.NaN;
+            boundsSet = false;
             applyShape();
-            if (texture == null) {
-                texture = Texture.calloc();
-                event = VREvent.calloc();
+            if (!shutdownHookAdded) {
+                shutdownHookAdded = true;
                 // Leave SteamVR cleanly when the game closes, so the screen doesn't linger in the headset.
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> stop("game closed"), "Parallax Screen SteamVR shutdown"));
             }
-            started = true;
             placed = false;
             lastError = "";
-            VROverlay.VROverlay_ShowOverlay(overlay);
+            OpenVrApi.showOverlay(overlay);
             System.out.println("[Parallax Screen] SteamVR screen started");
         } catch (Throwable t) {
-            logOnce("SteamVR could not be started: " + t);
+            logOnce("SteamVR screen could not be shown: " + t);
+            stop("error");
         }
     }
 
-    /** Screen size and curve from the settings (cheap; called again whenever they may have changed). */
-    public static void applyShape() {
-        if (overlay == 0L) {
-            return;
+    /** Screen size and curve from the settings; only sent to SteamVR when they change. */
+    private static void applyShape() throws Throwable {
+        float width = StereoConfig.screenWidth();
+        float curvature = StereoConfig.screenCurvature() / 100f;
+        if (width != appliedWidth) {
+            appliedWidth = width;
+            OpenVrApi.setOverlayWidth(overlay, width);
         }
-        VROverlay.VROverlay_SetOverlayWidthInMeters(overlay, StereoConfig.screenWidth());
-        VROverlay.VROverlay_SetOverlayCurvature(overlay, StereoConfig.screenCurvature() / 100f);
+        if (curvature != appliedCurvature) {
+            appliedCurvature = curvature;
+            OpenVrApi.setOverlayCurvature(overlay, curvature);
+        }
     }
 
     /**
      * Puts the screen straight ahead of the headset at the screen distance, level and facing it (only the headset's
      * heading counts, so looking down while recentering doesn't tilt the screen).
      */
-    private static boolean place() {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            TrackedDevicePose.Buffer poses = TrackedDevicePose.calloc(VR.k_unMaxTrackedDeviceCount, stack);
-            VRSystem.VRSystem_GetDeviceToAbsoluteTrackingPose(VR.ETrackingUniverseOrigin_TrackingUniverseStanding, 0f, poses);
-            TrackedDevicePose hmd = poses.get(VR.k_unTrackedDeviceIndex_Hmd);
-            if (!hmd.bPoseIsValid()) {
-                return false;
-            }
-            HmdMatrix34 pose = hmd.mDeviceToAbsoluteTracking();
-            // Rows are (x, y, z, translation); the headset looks along its -Z axis.
-            float forwardX = -pose.m(2);
-            float forwardZ = -pose.m(10);
-            float length = (float) Math.sqrt(forwardX * forwardX + forwardZ * forwardZ);
-            if (length < 1e-4f) {
-                forwardX = 0f;
-                forwardZ = -1f;
-            } else {
-                forwardX /= length;
-                forwardZ /= length;
-            }
-            float distance = StereoConfig.screenDistance();
-            float x = pose.m(3) + forwardX * distance;
-            float y = pose.m(7) + StereoConfig.screenHeight();
-            float z = pose.m(11) + forwardZ * distance;
-            // The overlay faces +Z; turn it to face back along the heading.
-            float angle = (float) Math.atan2(-forwardX, -forwardZ);
-            float cos = (float) Math.cos(angle);
-            float sin = (float) Math.sin(angle);
-            HmdMatrix34 transform = HmdMatrix34.calloc(stack);
-            transform.m(0, cos).m(1, 0f).m(2, sin).m(3, x)
-                .m(4, 0f).m(5, 1f).m(6, 0f).m(7, y)
-                .m(8, -sin).m(9, 0f).m(10, cos).m(11, z);
-            VROverlay.VROverlay_SetOverlayTransformAbsolute(overlay,
-                VR.ETrackingUniverseOrigin_TrackingUniverseStanding, transform);
-            return true;
+    private static boolean place() throws Throwable {
+        OpenVrApi.getPoses(OpenVrApi.UNIVERSE_STANDING, POSES, OpenVrApi.MAX_DEVICES);
+        long pose = (long) OpenVrApi.HMD_INDEX * OpenVrApi.POSE_SIZE;
+        if (POSES.get(JAVA_BYTE, pose + OpenVrApi.POSE_VALID_OFFSET) == 0) {
+            return false;
         }
+        // HmdMatrix34_t rows are (x, y, z, translation); the headset looks along its -Z axis.
+        float forwardX = -POSES.get(JAVA_FLOAT, pose + 2 * 4);
+        float forwardZ = -POSES.get(JAVA_FLOAT, pose + 10 * 4);
+        float length = (float) Math.sqrt(forwardX * forwardX + forwardZ * forwardZ);
+        if (length < 1e-4f) {
+            forwardX = 0f;
+            forwardZ = -1f;
+        } else {
+            forwardX /= length;
+            forwardZ /= length;
+        }
+        float distance = StereoConfig.screenDistance();
+        float x = POSES.get(JAVA_FLOAT, pose + 3 * 4) + forwardX * distance;
+        float y = POSES.get(JAVA_FLOAT, pose + 7 * 4) + StereoConfig.screenHeight();
+        float z = POSES.get(JAVA_FLOAT, pose + 11 * 4) + forwardZ * distance;
+        // The overlay faces +Z; turn it about the vertical to face back along the heading.
+        float angle = (float) Math.atan2(-forwardX, -forwardZ);
+        float cos = (float) Math.cos(angle);
+        float sin = (float) Math.sin(angle);
+        float[] matrix = {
+            cos, 0f, sin, x,
+            0f, 1f, 0f, y,
+            -sin, 0f, cos, z};
+        for (int i = 0; i < matrix.length; i++) {
+            TRANSFORM.setAtIndex(JAVA_FLOAT, i, matrix[i]);
+        }
+        int result = OpenVrApi.setOverlayTransformAbsolute(overlay, OpenVrApi.UNIVERSE_STANDING, TRANSFORM);
+        if (result != 0) {
+            logOnce("Could not place the SteamVR screen: " + OpenVrApi.overlayErrorText(result));
+        }
+        return result == 0;
     }
 
     /** Hands the packed eyes (left eye in the left half) to SteamVR. */
@@ -194,44 +233,52 @@ public final class VrScreen {
             }
             return;
         }
-        texture.handle(gl.glId()).eType(VR.ETextureType_TextureType_OpenGL).eColorSpace(VR.EColorSpace_ColorSpace_Auto);
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            // OpenGL textures start at the bottom row.
-            VRTextureBounds bounds = VRTextureBounds.calloc(stack).uMin(0f).uMax(1f);
-            if (StereoConfig.flipScreen()) {
-                bounds.vMin(0f).vMax(1f);
-            } else {
-                bounds.vMin(1f).vMax(0f);
+        try {
+            boolean flip = StereoConfig.flipScreen();
+            if (!boundsSet || flip != appliedFlip) {
+                // OpenGL textures start at the bottom row, so v runs from 1 at the top to 0 at the bottom.
+                boundsSet = true;
+                appliedFlip = flip;
+                BOUNDS.setAtIndex(JAVA_FLOAT, 0, 0f);
+                BOUNDS.setAtIndex(JAVA_FLOAT, 1, flip ? 0f : 1f);
+                BOUNDS.setAtIndex(JAVA_FLOAT, 2, 1f);
+                BOUNDS.setAtIndex(JAVA_FLOAT, 3, flip ? 1f : 0f);
+                OpenVrApi.setOverlayTextureBounds(overlay, BOUNDS);
             }
-            VROverlay.VROverlay_SetOverlayTextureBounds(overlay, bounds);
-        }
-        int result = VROverlay.VROverlay_SetOverlayTexture(overlay, texture);
-        if (result != VR.EVROverlayError_VROverlayError_None) {
-            logOnce("SteamVR did not take the frame: " + VROverlay.VROverlay_GetOverlayErrorNameFromEnum(result));
+            TEXTURE.set(JAVA_LONG, 0, gl.glId());
+            TEXTURE.set(JAVA_INT, 8, OpenVrApi.TEXTURE_OPENGL);
+            TEXTURE.set(JAVA_INT, 12, OpenVrApi.COLOR_SPACE_AUTO);
+            int result = OpenVrApi.setOverlayTexture(overlay, TEXTURE);
+            if (result != 0) {
+                logOnce("SteamVR did not take the frame: " + OpenVrApi.overlayErrorText(result));
+            }
+        } catch (Throwable t) {
+            logOnce("SteamVR screen error: " + t);
+            stop("error");
         }
     }
 
-    private static void pollEvents() {
-        while (started && VRSystem.VRSystem_PollNextEvent(event, VREvent.SIZEOF)) {
-            if (event.eventType() == VR.EVREventType_VREvent_Quit) {
+    private static void pollEvents() throws Throwable {
+        while (started && OpenVrApi.pollEvent(EVENT)) {
+            if (EVENT.get(JAVA_INT, 0) == OpenVrApi.EVENT_QUIT) {
                 // SteamVR is closing: let it go and fall back to the window.
-                VRSystem.VRSystem_AcknowledgeQuit_Exiting();
+                OpenVrApi.acknowledgeQuit();
                 stop("SteamVR closed");
             }
         }
     }
 
     /** Disconnects from SteamVR (the window shows side-by-side again). */
-    public static void stop(String reason) {
+    public static synchronized void stop(String reason) {
         if (!started) {
             return;
         }
         started = false;
         try {
             if (overlay != 0L) {
-                VROverlay.VROverlay_DestroyOverlay(overlay);
+                OpenVrApi.destroyOverlay(overlay);
             }
-            VR.VR_ShutdownInternal();
+            OpenVrApi.shutdown();
         } catch (Throwable t) {
             System.out.println("[Parallax Screen] Error while leaving SteamVR: " + t);
         }

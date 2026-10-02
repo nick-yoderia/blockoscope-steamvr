@@ -19,17 +19,14 @@
       "nzy.parallaxscreen.StereoModMenu"
     ]
   },
-  "jars": [
-    {"file": "META-INF/jars/lwjgl-openvr-3.3.6.jar"},
-    {"file": "META-INF/jars/lwjgl-openvr-3.3.6-natives-windows.jar"}
-  ],
   "mixins": [
     "parallaxscreen.mixins.json",
     "parallaxscreen.compat.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.15.0",
-    "minecraft": "~26.2"
+    "minecraft": "~26.2",
+    "java": ">=25"
   },
   "breaks": {
     "vivecraft": "*"
