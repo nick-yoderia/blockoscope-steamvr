@@ -17,9 +17,19 @@ workflow (build, test loop, rules); this file has the how and why.
 4. Restores everything and packs the eyes into the window with `EyeBlit` (a custom pipeline whose vertex shader
    squeezes a full-screen triangle into one half; 26.2 can't copy into a texture at an offset on OpenGL).
 
-The GUI is extracted once and drawn into both eyes; its projection is shifted per eye for the HUD distance
-(`eyeGuiProjection`), the crosshair draw gets its own projection for the aimed distance (`eyeCrosshairProjection`),
-and the hand projection gets the eye offset plus the focus shift in clip space (`eyeHandProjection`).
+The GUI is extracted once, prepared (meshed and uploaded) in the first eye and drawn into both; its projection is
+shifted per eye for the GUI depth (`eyeGuiProjection`), the crosshair draw gets its own projection for the aimed
+distance (`eyeCrosshairProjection`), and the hand projection gets the eye offset plus the focus shift in clip space
+(`eyeHandProjection`).
+
+GUI depth (`StereoRenderer.updateGuiDepth`, 0.1.3): menus and other screens (not chat) sit on the screen surface
+(`menuDistance`, 0 = screen); the in-game HUD sits at the crosshair's (smoothed) depth (`hudFollowsAim`), eased over
+~120 ms, or at the fixed `hudDistance` with that off. A flat panel facing the viewer differs between the eyes only by a
+uniform sideways shift, so the shift is the whole stereo treatment; the problem in 0.1.2 was *which* depth. With the
+HUD fixed at 1.2 m (user's setting; measured -11 px per eye at FOV 90, focus 4 m, depth 81%) and the world at 4 m+,
+the hotbar was seen double whenever the eyes converged on the world/crosshair, and menus' full-screen backdrop stuck
+out of the screen and was cut off by its edges (frame violation). The user reported "doubling in the menus and in game
+hotbar and crosshair".
 
 Crosshair depth (`StereoRenderer.updateCrosshairDepth`): within reach, the distance (along the view) to the game's
 own `hitResult` (block outline shape, so grass counts; entity hitboxes); with nothing in reach, the edge of the
@@ -40,6 +50,7 @@ Depth math: an eye at x = side * ipd/2 sees a point straight ahead at distance d
 |---|---|---|
 | Entities/block entities/breaking only in the first eye | `LevelRenderer.submitFeatures` clears the extracted lists | `LevelRendererMixin` keeps them until the second eye |
 | GUI empty in the second eye | `GuiRenderer.render` resets its state | `GuiRendererMixin` resets only after the second eye |
+| Text, item icons, picture-in-picture drawn twice in the second eye (until 0.1.2) | With the state kept, `GuiRenderer.prepare` ran again and appended every glyph and item blit to it a second time | `GuiRendererMixin` prepares/uploads in the first eye only and keeps the draws, meshes and blur split for the second (`endDraw`, `endFrame`, `draws.clear`, `firstDrawIndexAfterBlur` deferred) |
 | Per-frame cleanup twice | `GuiRenderer/RenderBuffers/CrossFrameResourcePool/FogRenderer.endFrame` | `GameRendererMixin` runs them after the second eye |
 | Blocks much nearer than entities at the same distance | Sodium writes terrain matrices once per frame (`UniformBufferManager.hasUpdatedThisFrame`); second eye used the first eye's projection | `SodiumUniformBufferManagerMixin` re-writes per eye, tracked per uniform storage (Iris swaps in a shadow storage) |
 | Washed-out sky in one eye (no shaders) | `SkyRenderer` keeps the render target it was created with | `SkyRendererMixin` always uses the current main target |
@@ -83,6 +94,10 @@ Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in 3D. Without s
 
 - Block-entity breaking overlay is positioned relative to the centre camera at extraction (tiny error, not fixed).
 - Hand depth at 100% is strong (about -52 px per eye for the held item); fine in testing, lower it if it strains.
-- Menu background blur shows a thin bright line at the left edge of each eye.
+- Menu background blur showed a thin bright line at the left edge of each eye; menus now sit on the screen surface
+  (no shift) by default, which should remove it. Check in game.
+- 0.1.3 GUI changes were written while the user was playing and not yet tested in game: check menus, inventory
+  (item icons, player model), chat, title panorama, the hotbar following the crosshair depth, and that text in the
+  right eye is no longer darker/heavier than in the left (`disp2.py` + a pixel diff of the two halves).
 - Voxy uses its original pipeline's uniform *values* for both eyes (camera position etc. of that eye); only
   draw targets follow the eye. No visible issue found.

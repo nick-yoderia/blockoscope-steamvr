@@ -7,6 +7,8 @@ import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -26,9 +28,9 @@ import org.joml.Vector4f;
  * Minecraft 26.2 extracts everything it draws (camera, level, GUI) into a render state once per frame and then
  * renders from that state. Here the render half runs twice. For each eye the main render target is swapped for a
  * half-width eye target, the extracted camera is moved sideways by half the eye spacing, and the projection is
- * sheared so things at the focus distance line up in both eyes. The GUI is drawn into both eyes unchanged, so it
- * sits on the screen surface. Projections keep the window's aspect ratio, so each eye is squeezed to half width,
- * which is what half side-by-side viewers stretch back out.
+ * sheared so things at the focus distance line up in both eyes. The GUI is drawn into both eyes, shifted sideways
+ * per eye to give it a depth (see {@link #updateGuiDepth}). Projections keep the window's aspect ratio, so each eye
+ * is squeezed to half width, which is what half side-by-side viewers stretch back out.
  */
 public final class StereoRenderer {
     public static final int NONE = -1;
@@ -58,7 +60,9 @@ public final class StereoRenderer {
     private static final Vector3f eyeShift = new Vector3f();
     /** 1 / distance of what the crosshair points at (0 = nothing, infinitely far), smoothed. */
     private static float crosshairInverseDistance;
-    private static long lastCrosshairNanos;
+    private static long lastFrameNanos;
+    /** 1 / distance at which the GUI sits this frame, smoothed; see {@link #updateGuiDepth}. */
+    private static float guiInverseDistance;
     /** Counts eye renders, so per-frame caches in other mods can tell one eye from the next. */
     private static int eyePassCounter;
 
@@ -142,7 +146,11 @@ public final class StereoRenderer {
 
         CameraRenderState camera = gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
         Camera mainCamera = gameRenderer.mainCamera();
-        updateCrosshairDepth(mainCamera);
+        long now = System.nanoTime();
+        float seconds = lastFrameNanos == 0L ? 1f : (now - lastFrameNanos) / 1.0e9f;
+        lastFrameNanos = now;
+        updateCrosshairDepth(mainCamera, seconds);
+        updateGuiDepth(seconds);
         Vec3 centre = camera.pos;
         Vec3 mainCentre = mainCamera.position();
         Matrix4f projection = camera.projectionMatrix == null ? null : new Matrix4f(camera.projectionMatrix);
@@ -233,8 +241,9 @@ public final class StereoRenderer {
     }
 
     /**
-     * Shifts the GUI sideways in each eye so it appears at the HUD distance: the same disparity a point straight
-     * ahead at that distance gets in the world.
+     * Shifts the GUI sideways in each eye so it appears at its distance (see {@link #updateGuiDepth}): the same
+     * disparity a point straight ahead at that distance gets in the world. A flat panel facing the viewer looks the
+     * same to both eyes apart from this shift, so nothing else changes per eye.
      */
     public static Matrix4f eyeGuiProjection(Matrix4f projection) {
         return new Matrix4f().translation(guiOffset(), 0f, 0f).mul(projection);
@@ -264,10 +273,7 @@ public final class StereoRenderer {
      * game picks (so grass counts, not what is behind it), within reach. With nothing in reach it rests at the edge of
      * your block reach (moved nearer or farther by the rest setting), rather than following far-away scenery.
      */
-    private static void updateCrosshairDepth(Camera camera) {
-        long now = System.nanoTime();
-        float seconds = lastCrosshairNanos == 0L ? 1f : (now - lastCrosshairNanos) / 1.0e9f;
-        lastCrosshairNanos = now;
+    private static void updateCrosshairDepth(Camera camera, float seconds) {
         Minecraft minecraft = Minecraft.getInstance();
         double reach = minecraft.player != null ? minecraft.player.blockInteractionRange() : 4.5;
         float target = (float) (1.0 / Math.max(0.5, reach + StereoConfig.crosshairRestOffset()));
@@ -285,15 +291,51 @@ public final class StereoRenderer {
         }
     }
 
+    /**
+     * Picks the depth of the GUI for this frame.
+     *
+     * Two eyes can only fuse a narrow range of depths around where they converge; anything much nearer or farther is
+     * seen double. A HUD floating at a fixed distance in front of the world (0.1.x) doubled whenever you looked at the
+     * world through it: the hotbar and crosshair at different depths, and menus whose full-screen backdrop stuck out
+     * of the screen and was cut off by its edges. Now:
+     * <ul>
+     * <li>Menus and other screens sit on the screen surface (or at the menu distance), where the eyes rest anyway.</li>
+     * <li>The in-game HUD sits at the crosshair's depth, i.e. where you are looking while you play, so a glance from
+     * the crosshair to the hotbar needs no change of focus. It eases more slowly than the crosshair so it doesn't
+     * flicker along block edges. With "follow aim" off it stays at the fixed HUD distance as before.</li>
+     * </ul>
+     * The chat screen counts as HUD: it opens over the game and the hotbar stays in view.
+     */
+    private static void updateGuiDepth(float seconds) {
+        Minecraft minecraft = Minecraft.getInstance();
+        float focus = StereoConfig.focusDistance();
+        float inverseFocus = focus > 0f ? 1f / focus : 0f;
+        float target;
+        Screen screen = minecraft.gui.screen();
+        boolean menu = screen != null && !(screen instanceof ChatScreen) || minecraft.level == null;
+        if (menu) {
+            target = inverseDistanceOrScreen(StereoConfig.menuDistance(), inverseFocus);
+        } else if (StereoConfig.hudFollowsAim()) {
+            target = crosshairInverseDistance;
+        } else {
+            target = inverseDistanceOrScreen(StereoConfig.hudDistance(), inverseFocus);
+        }
+        guiInverseDistance += (target - guiInverseDistance) * (1f - (float) Math.exp(-seconds / 0.12f));
+    }
+
+    /** 1 / distance, where 0 m means the screen surface (the focus distance). */
+    private static float inverseDistanceOrScreen(float distance, float inverseFocus) {
+        return distance > 0f ? 1f / distance : inverseFocus;
+    }
+
     /** The GUI's sideways shift in this eye, in clip space. */
     private static float guiOffset() {
-        float hudDistance = StereoConfig.hudDistance();
-        if (eye == NONE || hudDistance <= 0f) {
+        if (eye == NONE) {
             return 0f;
         }
         float focus = StereoConfig.focusDistance();
         float inverseFocus = focus > 0f ? 1f / focus : 0f;
-        return side() * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - 1f / hudDistance);
+        return side() * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - guiInverseDistance);
     }
 
     /**

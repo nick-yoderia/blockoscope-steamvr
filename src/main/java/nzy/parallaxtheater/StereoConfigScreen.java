@@ -85,12 +85,27 @@ public final class StereoConfigScreen {
 
         // --- HUD ---
         ConfigCategory hud = builder.getOrCreateCategory(Component.literal("HUD & Hand"));
-        hud.addEntry(entries.startIntSlider(Component.literal("HUD distance"),
+        hud.addEntry(entries.startBooleanToggle(Component.literal("HUD depth"), StereoConfig.hudFollowsAim())
+            .setDefaultValue(true)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "Follows aim" : "Fixed"))
+            .setTooltip(Component.literal("Follows aim = at the crosshair's depth."))
+            .setSaveConsumer(StereoConfig::setHudFollowsAim)
+            .build());
+
+        hud.addEntry(entries.startIntSlider(Component.literal("Fixed HUD distance"),
                 Math.round(StereoConfig.hudDistance() * 100), 0, 1000)
             .setDefaultValue(135)
             .setTextGetter(value -> Component.literal(value == 0 ? "Screen" : String.format("%.2f m", value / 100f)))
-            .setTooltip(Component.literal("Also moves menus. Screen = no depth."))
+            .setTooltip(Component.literal("Used when HUD depth is Fixed."))
             .setSaveConsumer(value -> StereoConfig.setHudDistance(value / 100f))
+            .build());
+
+        hud.addEntry(entries.startIntSlider(Component.literal("Menu distance"),
+                Math.round(StereoConfig.menuDistance() * 100), 0, 1000)
+            .setDefaultValue(0)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Screen" : String.format("%.2f m", value / 100f)))
+            .setTooltip(Component.literal("Menus and inventories. Screen = no depth."))
+            .setSaveConsumer(value -> StereoConfig.setMenuDistance(value / 100f))
             .build());
 
         hud.addEntry(entries.startBooleanToggle(Component.literal("Crosshair depth"), StereoConfig.crosshairAtTarget())

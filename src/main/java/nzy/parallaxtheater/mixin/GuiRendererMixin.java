@@ -7,28 +7,91 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
+import net.minecraft.client.renderer.StagedVertexBuffer;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import nzy.parallaxtheater.StereoRenderer;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.List;
+
 /**
- * The GUI is drawn once per eye from the same extracted state, so the state is kept after the first eye. Scissor
- * rectangles (scrolling lists and the like) are worked out in window pixels; they are squeezed to the eye target
- * and shifted with the GUI.
+ * The GUI is drawn once per eye from the same extracted state. It is prepared (text laid out into glyphs, items and
+ * picture-in-picture elements turned into blits, everything meshed and uploaded) in the first eye only, and the
+ * second eye draws the same meshes: preparing again added every glyph and item blit to the kept state a second time,
+ * so the second eye drew them twice and the eyes no longer matched. Scissor rectangles (scrolling lists and the like)
+ * are worked out in window pixels; they are squeezed to the eye target and shifted with the GUI.
  */
 @Mixin(value = GuiRenderer.class, remap = false)
 public abstract class GuiRendererMixin {
+    @Shadow
+    private int firstDrawIndexAfterBlur;
+
+    @Shadow
+    private void prepare() {
+        throw new AssertionError();
+    }
+
+    /** Kept for the second eye: it still needs the panorama state, and preparing once relies on nothing being reset. */
     @Redirect(method = "render", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/state/gui/GuiRenderState;reset()V"))
     private void parallaxTheater$keepStateForSecondEye(GuiRenderState state) {
         if (!StereoRenderer.isFirstEye()) {
             state.reset();
+        }
+    }
+
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/gui/render/GuiRenderer;prepare()V"))
+    private void parallaxTheater$prepareOnce(GuiRenderer self) {
+        if (!StereoRenderer.isSecondEye()) {
+            prepare();
+        }
+    }
+
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;upload()V"))
+    private void parallaxTheater$uploadOnce(StagedVertexBuffer buffer) {
+        if (!StereoRenderer.isSecondEye()) {
+            buffer.upload();
+        }
+    }
+
+    /** The uploaded meshes, the list of draws and the blur split stay until the second eye has drawn them. */
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;endDraw()V"))
+    private void parallaxTheater$keepMeshes(StagedVertexBuffer buffer) {
+        if (!StereoRenderer.isFirstEye()) {
+            buffer.endDraw();
+        }
+    }
+
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;endFrame()V"))
+    private void parallaxTheater$keepMeshBuffers(StagedVertexBuffer buffer) {
+        if (!StereoRenderer.isFirstEye()) {
+            buffer.endFrame();
+        }
+    }
+
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/List;clear()V"))
+    private void parallaxTheater$keepDraws(List<?> draws) {
+        if (!StereoRenderer.isFirstEye()) {
+            draws.clear();
+        }
+    }
+
+    @Redirect(method = "render", at = @At(value = "FIELD", opcode = 181 /* PUTFIELD */,
+        target = "Lnet/minecraft/client/gui/render/GuiRenderer;firstDrawIndexAfterBlur:I"))
+    private void parallaxTheater$keepBlurSplit(GuiRenderer self, int value) {
+        if (!StereoRenderer.isFirstEye()) {
+            firstDrawIndexAfterBlur = value;
         }
     }
 
