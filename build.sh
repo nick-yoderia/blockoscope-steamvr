@@ -18,11 +18,12 @@ CLOTH="$(ls "$MODS"/cloth-config-*.jar | tail -1)"
 MODMENU="$(ls "$MODS"/modmenu-*.jar | tail -1)"
 IRIS="$(ls "$APPDATA"/PrismLauncher/instances/26.2/minecraft/mods/iris-fabric-*.jar | tail -1)"
 SODIUM="$(ls "$MODS"/sodium-fabric-*.jar | tail -1)"
+VOXY="$(ls "$MODS"/voxy-*.jar | tail -1)"
 LOADER="$(ls "$LIBS"/net/fabricmc/fabric-loader/*/fabric-loader-*.jar | tail -1)"
 ASM_TREE="$(ls "$LIBS"/org/ow2/asm/asm-tree/*/asm-tree-*.jar | tail -1)"
 CP=""
 MOJANG_LIBS="$(ls "$LIBS"/com/mojang/brigadier/*/brigadier-*.jar "$LIBS"/com/mojang/datafixerupper/*/datafixerupper-*.jar "$LIBS"/org/jspecify/jspecify/*/jspecify-*.jar "$LIBS"/it/unimi/dsi/fastutil/*/fastutil-*.jar 2>/dev/null)"
-for jar in "$MIXIN" "$LWJGL" "$GLFW" "$JOML" "$MC" "$CLOTH" "$MODMENU" "$IRIS" "$SODIUM" "$LOADER" "$ASM_TREE" $MOJANG_LIBS; do
+for jar in "$MIXIN" "$LWJGL" "$GLFW" "$JOML" "$MC" "$CLOTH" "$MODMENU" "$IRIS" "$SODIUM" "$VOXY" "$LOADER" "$ASM_TREE" $MOJANG_LIBS; do
   CP="$CP$(cygpath -w "$jar");"
 done
 VERSION="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' src/main/resources/fabric.mod.json)"

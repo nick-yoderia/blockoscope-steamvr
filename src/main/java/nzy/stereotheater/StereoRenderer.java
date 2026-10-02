@@ -162,6 +162,13 @@ public final class StereoRenderer {
                         (float) (centre.z - camera.pos.z));
                 }
                 gameRenderer.render(deltaTracker, renderLevel);
+                if (pass == 0 && renderLevel && Minecraft.getInstance().level != null) {
+                    // Per-frame buffers that are rewritten for every eye (the clouds' camera offset, Sodium's terrain
+                    // uniforms) move on to a fresh copy, or the second eye's values would overwrite the first eye's
+                    // before the GPU draws it: the left eye's clouds jumped a cloud cell whenever the cell boundary
+                    // fell between the eyes.
+                    Minecraft.getInstance().levelRenderer.endFrame();
+                }
             }
         } finally {
             eye = NONE;

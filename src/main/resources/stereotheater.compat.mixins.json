@@ -9,7 +9,8 @@
     "iris.IrisPipelineManagerMixin",
     "iris.IrisRenderTargetsMixin",
     "iris.IrisTimerMixin",
-    "sodium.SodiumUniformBufferManagerMixin"
+    "sodium.SodiumUniformBufferManagerMixin",
+    "voxy.VoxyViewportSelectorMixin"
   ],
   "injectors": {
     "defaultRequire": 1
