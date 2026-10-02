@@ -100,11 +100,14 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setCrosshairAtTarget)
             .build());
 
-        hud.addEntry(entries.startIntSlider(Component.literal("Crosshair rest"), Math.round(StereoConfig.crosshairDistance()), 0, 64)
+        // Half-metre steps, relative to the block reach.
+        hud.addEntry(entries.startIntSlider(Component.literal("Crosshair rest"),
+                Math.round(StereoConfig.crosshairRestOffset() * 2f), -8, 32)
             .setDefaultValue(0)
-            .setTextGetter(value -> Component.literal(value == 0 ? "Screen" : value + " m"))
+            .setTextGetter(value -> Component.literal(value == 0 ? "At reach"
+                : String.format("Reach %s%.1f m", value > 0 ? "+" : "-", Math.abs(value) / 2f)))
             .setTooltip(Component.literal("Depth when nothing is in reach."))
-            .setSaveConsumer(value -> StereoConfig.setCrosshairDistance(value))
+            .setSaveConsumer(value -> StereoConfig.setCrosshairRestOffset(value / 2f))
             .build());
 
         hud.addEntry(entries.startIntSlider(Component.literal("Arm reach"), StereoConfig.handReach(), 0, 60)

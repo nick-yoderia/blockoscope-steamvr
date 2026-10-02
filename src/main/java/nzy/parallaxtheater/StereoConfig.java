@@ -26,7 +26,7 @@ public final class StereoConfig {
         "handInward: centimetres the hand and held item are moved towards the middle in 3D",
         "handDepthPercent: depth of your hand and held item as a % of the world's (0 = on the screen surface)",
         "crosshairAtTarget: show the crosshair at the depth of what it aims at within reach (false = with the HUD)",
-        "crosshairDistance: metres for the crosshair when nothing is within reach; 0 = the screen surface (focus distance)",
+        "crosshairRestOffset: metres nearer (negative) or farther than your block reach where the crosshair rests when nothing is in reach",
         "hudDistance: metres at which the HUD and menus float; 0 = on the screen surface",
         "cameraBobbing: vanilla view bobbing of the camera while walking (the hand still bobs either way)",
         "damageTilt: tilt the camera when hurt or dying",
@@ -45,7 +45,7 @@ public final class StereoConfig {
     private static int handInward = 0;
     private static float hudDistance = 1.35f;
     private static boolean crosshairAtTarget = true;
-    private static float crosshairDistance = 0f;
+    private static float crosshairRestOffset = 0f;
     private static boolean swapEyes = false;
     private static boolean cameraBobbing = false;
     private static boolean damageTilt = false;
@@ -69,13 +69,7 @@ public final class StereoConfig {
     public static int handInward() { return handInward; }
     public static float hudDistance() { return hudDistance; }
     public static boolean crosshairAtTarget() { return crosshairAtTarget; }
-    public static float crosshairDistance() { return crosshairDistance; }
-
-    /** Where the crosshair sits with nothing in reach: the set distance, else the screen surface. */
-    public static float crosshairRestDistance() {
-        float distance = crosshairDistance > 0f ? crosshairDistance : focusDistance;
-        return distance > 0f ? distance : 1000f;
-    }
+    public static float crosshairRestOffset() { return crosshairRestOffset; }
     public static boolean swapEyes() { return swapEyes; }
     public static boolean cameraBobbing() { return cameraBobbing; }
     public static boolean damageTilt() { return damageTilt; }
@@ -93,7 +87,7 @@ public final class StereoConfig {
     public static void setHandInward(int value) { handInward = Math.max(0, Math.min(40, value)); }
     public static void setHudDistance(float value) { hudDistance = Math.max(0f, value); }
     public static void setCrosshairAtTarget(boolean value) { crosshairAtTarget = value; }
-    public static void setCrosshairDistance(float value) { crosshairDistance = Math.max(0f, Math.min(64f, value)); }
+    public static void setCrosshairRestOffset(float value) { crosshairRestOffset = Math.max(-4f, Math.min(16f, value)); }
     public static void setSwapEyes(boolean value) { swapEyes = value; }
     public static void setCameraBobbing(boolean value) { cameraBobbing = value; }
     public static void setDamageTilt(boolean value) { damageTilt = value; }
@@ -126,7 +120,7 @@ public final class StereoConfig {
         setHandInward((int) Math.round(parseDouble(props.getProperty("handInward"), 0)));
         setHudDistance((float) parseDouble(props.getProperty("hudDistance"), 1.35));
         crosshairAtTarget = parseBoolean(props.getProperty("crosshairAtTarget"), true);
-        setCrosshairDistance((float) parseDouble(props.getProperty("crosshairDistance"), 0));
+        setCrosshairRestOffset((float) parseDouble(props.getProperty("crosshairRestOffset"), 0));
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
         cameraBobbing = parseBoolean(props.getProperty("cameraBobbing"), false);
         damageTilt = parseBoolean(props.getProperty("damageTilt"), false);
@@ -148,7 +142,7 @@ public final class StereoConfig {
         out.setProperty("handInward", String.valueOf(handInward));
         out.setProperty("hudDistance", String.valueOf(hudDistance));
         out.setProperty("crosshairAtTarget", String.valueOf(crosshairAtTarget));
-        out.setProperty("crosshairDistance", String.valueOf(crosshairDistance));
+        out.setProperty("crosshairRestOffset", String.valueOf(crosshairRestOffset));
         out.setProperty("swapEyes", String.valueOf(swapEyes));
         out.setProperty("cameraBobbing", String.valueOf(cameraBobbing));
         out.setProperty("damageTilt", String.valueOf(damageTilt));

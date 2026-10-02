@@ -261,15 +261,17 @@ public final class StereoRenderer {
 
     /**
      * Moves the crosshair to the depth of what it aims at: the point on the block's outline or the entity's hitbox the
-     * game picks (so grass counts, not what is behind it), within reach. With nothing in reach it snaps to the crosshair
-     * distance setting (default: the screen surface), rather than following far-away scenery.
+     * game picks (so grass counts, not what is behind it), within reach. With nothing in reach it rests at the edge of
+     * your block reach (moved nearer or farther by the rest setting), rather than following far-away scenery.
      */
     private static void updateCrosshairDepth(Camera camera) {
         long now = System.nanoTime();
         float seconds = lastCrosshairNanos == 0L ? 1f : (now - lastCrosshairNanos) / 1.0e9f;
         lastCrosshairNanos = now;
-        float target = 1f / StereoConfig.crosshairRestDistance();
-        HitResult hit = Minecraft.getInstance().hitResult;
+        Minecraft minecraft = Minecraft.getInstance();
+        double reach = minecraft.player != null ? minecraft.player.blockInteractionRange() : 4.5;
+        float target = (float) (1.0 / Math.max(0.5, reach + StereoConfig.crosshairRestOffset()));
+        HitResult hit = minecraft.hitResult;
         if (camera != null && hit != null && hit.getType() != HitResult.Type.MISS) {
             Vec3 from = camera.position();
             Vector3fc forward = camera.forwardVector();

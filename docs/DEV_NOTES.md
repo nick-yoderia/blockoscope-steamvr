@@ -22,8 +22,8 @@ The GUI is extracted once and drawn into both eyes; its projection is shifted pe
 and the hand projection gets the eye offset plus the focus shift in clip space (`eyeHandProjection`).
 
 Crosshair depth (`StereoRenderer.updateCrosshairDepth`): within reach, the distance (along the view) to the game's
-own `hitResult` (block outline shape, so grass counts; entity hitboxes); with nothing in reach, the rest distance
-(`crosshairDistance`, 0 = focus distance). Eased over ~25 ms. History: 0.1.1 read the depth buffer under the
+own `hitResult` (block outline shape, so grass counts; entity hitboxes); with nothing in reach, the edge of the
+player's block reach (`Player.blockInteractionRange()`, 4.5 in survival) plus `crosshairRestOffset`. Eased over ~25 ms. History: 0.1.1 read the depth buffer under the
 crosshair instead (GPU read-back via `glGetTextureSubImage`; Blaze3D's `copyTextureToBuffer` can't read depth). The
 user found that worse: it looked through grass and followed far scenery, which was disorienting, so it was removed.
 
