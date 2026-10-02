@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds build/stereo-theater-<version>.jar with the JDK that ships with Prism Launcher.
-# Compiles against Mixin, LWJGL, JOML, the Minecraft client jar, Cloth Config and Mod Menu (none are bundled).
+# Compiles against Mixin, LWJGL, JOML, the Minecraft client jar, Fabric Loader, Cloth Config, Mod Menu and
+# Iris (none are bundled; Iris support only loads when Iris is installed).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -15,9 +16,12 @@ JOML="$(ls "$LIBS"/org/joml/joml/*/joml-*.jar | tail -1)"
 MODS="$APPDATA/PrismLauncher/instances/26.2-Stereo-Dev/minecraft/mods"
 CLOTH="$(ls "$MODS"/cloth-config-*.jar | tail -1)"
 MODMENU="$(ls "$MODS"/modmenu-*.jar | tail -1)"
+IRIS="$(ls "$APPDATA"/PrismLauncher/instances/26.2/minecraft/mods/iris-fabric-*.jar | tail -1)"
+LOADER="$(ls "$LIBS"/net/fabricmc/fabric-loader/*/fabric-loader-*.jar | tail -1)"
+ASM_TREE="$(ls "$LIBS"/org/ow2/asm/asm-tree/*/asm-tree-*.jar | tail -1)"
 CP=""
 MOJANG_LIBS="$(ls "$LIBS"/com/mojang/brigadier/*/brigadier-*.jar "$LIBS"/com/mojang/datafixerupper/*/datafixerupper-*.jar "$LIBS"/org/jspecify/jspecify/*/jspecify-*.jar "$LIBS"/it/unimi/dsi/fastutil/*/fastutil-*.jar 2>/dev/null)"
-for jar in "$MIXIN" "$LWJGL" "$GLFW" "$JOML" "$MC" "$CLOTH" "$MODMENU" $MOJANG_LIBS; do
+for jar in "$MIXIN" "$LWJGL" "$GLFW" "$JOML" "$MC" "$CLOTH" "$MODMENU" "$IRIS" "$LOADER" "$ASM_TREE" $MOJANG_LIBS; do
   CP="$CP$(cygpath -w "$jar");"
 done
 VERSION="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' src/main/resources/fabric.mod.json)"

@@ -25,7 +25,7 @@ public abstract class LevelRendererMixin {
     // Gizmos are collected in the first eye and reused by the second (draining again would leave it none).
     @Inject(method = "finalizeGizmoCollection", at = @At("HEAD"), cancellable = true)
     private void stereoTheater$reuseGizmos(CallbackInfo ci) {
-        if (StereoRenderer.eye() == StereoRenderer.RIGHT) {
+        if (StereoRenderer.isSecondEye()) {
             ci.cancel();
         }
     }

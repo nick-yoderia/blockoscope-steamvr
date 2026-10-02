@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "nzy.stereotheater.mixin",
+  "plugin": "nzy.stereotheater.mixin.CompatMixinPlugin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "iris.IrisFrameCounterMixin",
+    "iris.IrisPipelineManagerMixin",
+    "iris.IrisRenderTargetsMixin",
+    "iris.IrisTimerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

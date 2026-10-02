@@ -35,6 +35,10 @@ public final class StereoRenderer {
 
     private static final RenderTarget[] targets = new RenderTarget[2];
     private static int eye = NONE;
+    /** 0 for the first eye rendered this frame, 1 for the second. */
+    private static int pass;
+    /** Debug: render the right eye first (to tell per-eye problems from first-render problems). */
+    private static final boolean RIGHT_FIRST = Boolean.getBoolean("stereotheater.rightFirst");
     private static int eyeWidth;
     private static int eyeHeight;
     private static int windowHeight;
@@ -52,7 +56,12 @@ public final class StereoRenderer {
 
     /** True while the first of the two eyes renders; per-frame cleanup is held back until the second. */
     public static boolean isFirstEye() {
-        return eye == LEFT;
+        return eye != NONE && pass == 0;
+    }
+
+    /** True while the second eye renders: the same frame again, so per-frame bookkeeping must not repeat. */
+    public static boolean isSecondEye() {
+        return eye != NONE && pass == 1;
     }
 
     public static boolean isRendering() {
@@ -79,7 +88,6 @@ public final class StereoRenderer {
 
     /** Replaces GameRenderer.render(deltaTracker, renderLevel) in Minecraft.renderFrame. */
     public static void render(GameRenderer gameRenderer, DeltaTracker deltaTracker, boolean renderLevel) {
-        ToggleKey.poll();
         CursorControl.update();
         logFps();
         WindowRenderState window = gameRenderer.gameRenderState().windowRenderState;
@@ -118,7 +126,8 @@ public final class StereoRenderer {
         worldProjectionScale = projection != null ? projection.m00()
             : (float) (1.0 / ((double) width / height * Math.tan(Math.toRadians(35.0))));
         try {
-            for (int i = LEFT; i <= RIGHT; i++) {
+            for (pass = 0; pass < 2; pass++) {
+                int i = RIGHT_FIRST ? 1 - pass : pass;
                 eye = i;
                 access.stereoTheater$setMainRenderTarget(targets[i]);
                 placeEye(camera, centre, projection, i);
