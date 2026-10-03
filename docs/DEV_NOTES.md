@@ -110,10 +110,19 @@ every adjustment needed Save & Quit, a look, and reopening the menu.
 3D mode (0.3.0, `StereoConfig.mode`, replaces `enabled`; `enabled=true` migrates to `auto`): `auto` (default) =
 3D exactly while `VrScreen.active()`, else vanilla rendering, so a mod pack shared with friends without VR is plain
 Minecraft for them; `on` = always (window SBS without SteamVR); `off`. `VrScreen` keeps trying to connect unless the
-mode is `off`. F9: `enabled() ? off : on`. `OptionsScreenMixin` adds a "3D: Auto/On/Off" cycle button at (5, 5) in the
-Options screen (like Vivecraft's VR switch; the user asked for a toggle there, default off; auto was proposed as
-better). Verified: auto starts in 2D and turns 3D when the screen connects; the button cycles and saves; off stops
-the screen. 
+mode is `off`. F9: `enabled() ? off : on`. `TitleScreenMixin` adds a "3D: Auto/On/Off" cycle button right of Singleplayer
+(width/2 + 104, height/4 + 48; Vivecraft's VR button sits one row lower at + 72). The user asked for a toggle "like
+Vivecraft", default off; auto was proposed as better and accepted. It was first in the Options screen; the user
+wanted it on the main menu. Verified (in the Options screen version): auto starts in 2D and turns 3D when the screen
+connects; the button cycles and saves; off stops the screen.
+
+Settings screen (0.3.0): tabs General (3D mode, headset off, use SteamVR, monitor shows), Screen (FOV link, width,
+distance, height, curve: the live ones), Picture (eye resolution, sync, window render scale, flip), Depth, HUD & Hand,
+Comfort, Cursor. Every entry has a plain-words tooltip (the user found e.g. "Screen size: Custom" confusing; it is now
+"FOV link: Off / Screen fits FOV / FOV fits screen"), and Cloth `Requirement`s grey out what doesn't apply (width
+under Screen fits FOV, fixed HUD distance unless Fixed, crosshair rest unless At target). Defaults are the user's
+headset-tuned values (`StereoConfig.DEFAULT_*`): 4.3 m screen at 2.8 m, curve 10%, focus 4 m, hand depth 50%, arm
+length vanilla, fixed HUD 1.2 m.
 
 Headset in use (0.3.0, `VrScreen.updateHeadset`, `OpenVrApi.headsetInUse`): being connected to SteamVR is not enough
 (the user: many people run SteamVR without connecting the headset and want to play flat). `active()` = connected

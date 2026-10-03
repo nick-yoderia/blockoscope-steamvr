@@ -3,7 +3,7 @@ package nzy.blockoscope.steamvr.mixin;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import nzy.blockoscope.steamvr.StereoConfig;
 import nzy.blockoscope.steamvr.StereoConfigScreen;
@@ -13,13 +13,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * A "3D: Auto / On / Off" button in the top left corner of Minecraft's Options screen (from the title screen and the
- * pause menu), like Vivecraft's VR switch, so 3D can be set without Mod Menu: someone playing a shared mod pack on a
- * monitor can see at a glance that it's off, and turn it off for good if they run SteamVR for something else.
+ * A "3D: Auto / On / Off" button on the title screen, right of Singleplayer, where Vivecraft puts its VR switch (one
+ * row lower, so both fit if someone has both). The user wanted it on the main menu like Vivecraft rather than in a
+ * settings screen: it is the first thing someone playing a shared mod pack sees.
  */
-@Mixin(value = OptionsScreen.class, remap = false)
-public abstract class OptionsScreenMixin extends Screen {
-    protected OptionsScreenMixin(Component title) {
+@Mixin(value = TitleScreen.class, remap = false)
+public abstract class TitleScreenMixin extends Screen {
+    protected TitleScreenMixin(Component title) {
         super(title);
     }
 
@@ -31,9 +31,9 @@ public abstract class OptionsScreenMixin extends Screen {
                 StereoConfig.save();
                 button.setMessage(blockoscopeSteamVr$label());
             })
-            .bounds(5, 5, 90, 20)
-            .tooltip(Tooltip.create(Component.literal(
-                "Blockoscope SteamVR. Auto: 3D in SteamVR while it runs, normal 2D otherwise. On: always 3D. Off: never.")))
+            .bounds(width / 2 + 104, height / 4 + 48, 64, 20)
+            .tooltip(Tooltip.create(Component.literal("Blockoscope 3D. Auto: 3D only while you use a headset in "
+                + "SteamVR, normal Minecraft otherwise. On: always 3D. Off: normal Minecraft.")))
             .build());
     }
 

@@ -40,6 +40,18 @@ public final class StereoConfig {
         MATCH_FOV
     }
 
+    /**
+     * Defaults, as tuned in the headset (Steam Frame, 21:9 window, FOV 90): a 4.3 m screen at 2.8 m with a slight
+     * curve, the world at 4 m on the screen surface, the held item at half depth and at vanilla arm length.
+     */
+    public static final float DEFAULT_SCREEN_WIDTH = 4.3f;
+    public static final float DEFAULT_SCREEN_DISTANCE = 2.8f;
+    public static final int DEFAULT_SCREEN_CURVATURE = 10;
+    public static final float DEFAULT_FOCUS_DISTANCE = 4f;
+    public static final int DEFAULT_HAND_DEPTH = 50;
+    public static final int DEFAULT_HAND_REACH = 0;
+    public static final float DEFAULT_HUD_DISTANCE = 1.2f;
+
     /** Average human eye separation in metres; depth strength is a percentage of this. */
     public static final float AVERAGE_IPD = 0.064f;
 
@@ -88,13 +100,13 @@ public final class StereoConfig {
     private static Mode mode = Mode.AUTO;
     private static int renderScale = 100;
     private static int depthPercent = 100;
-    private static float focusDistance = 10f;
-    private static int handDepthPercent = 50;
-    private static int handReach = 30;
+    private static float focusDistance = DEFAULT_FOCUS_DISTANCE;
+    private static int handDepthPercent = DEFAULT_HAND_DEPTH;
+    private static int handReach = DEFAULT_HAND_REACH;
     private static int handRaise = 0;
     private static int handInward = 0;
     private static HudDepth hudDepth = HudDepth.SCENE;
-    private static float hudDistance = 1.35f;
+    private static float hudDistance = DEFAULT_HUD_DISTANCE;
     private static float menuDistance = 0f;
     private static boolean crosshairAtTarget = true;
     private static float crosshairRestOffset = 0f;
@@ -104,10 +116,10 @@ public final class StereoConfig {
     private static boolean syncToHeadset = true;
     private static ScreenSize screenSize = ScreenSize.CUSTOM;
     private static boolean headsetOffTo2D = true;
-    private static float screenWidth = 2.6f;
-    private static float screenDistance = 2.0f;
+    private static float screenWidth = DEFAULT_SCREEN_WIDTH;
+    private static float screenDistance = DEFAULT_SCREEN_DISTANCE;
     private static float screenHeight = 0f;
-    private static int screenCurvature = 0;
+    private static int screenCurvature = DEFAULT_SCREEN_CURVATURE;
     private static boolean flipScreen = false;
     private static boolean previewBothEyes = false;
     private static boolean cameraBobbing = false;
@@ -245,15 +257,15 @@ public final class StereoConfig {
         mode = parseEnum(Mode.class, props.getProperty("mode"), oldMode);
         setRenderScale((int) Math.round(parseDouble(props.getProperty("renderScale"), 100)));
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
-        setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 10));
-        setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), 50)));
-        setHandReach((int) Math.round(parseDouble(props.getProperty("handReach"), 30)));
+        setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), DEFAULT_FOCUS_DISTANCE));
+        setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), DEFAULT_HAND_DEPTH)));
+        setHandReach((int) Math.round(parseDouble(props.getProperty("handReach"), DEFAULT_HAND_REACH)));
         setHandRaise((int) Math.round(parseDouble(props.getProperty("handRaise"), 0)));
         setHandInward((int) Math.round(parseDouble(props.getProperty("handInward"), 0)));
         // 0.1.3 had hudFollowsAim (true = aim, false = fixed); its default now becomes scene.
         HudDepth oldDepth = "false".equals(props.getProperty("hudFollowsAim", "").trim()) ? HudDepth.FIXED : HudDepth.SCENE;
         hudDepth = parseEnum(HudDepth.class, props.getProperty("hudDepth"), oldDepth);
-        setHudDistance((float) parseDouble(props.getProperty("hudDistance"), 1.35));
+        setHudDistance((float) parseDouble(props.getProperty("hudDistance"), DEFAULT_HUD_DISTANCE));
         setMenuDistance((float) parseDouble(props.getProperty("menuDistance"), 0));
         crosshairAtTarget = parseBoolean(props.getProperty("crosshairAtTarget"), true);
         setCrosshairRestOffset((float) parseDouble(props.getProperty("crosshairRestOffset"), 0));
@@ -265,10 +277,10 @@ public final class StereoConfig {
         screenSize = parseEnum(ScreenSize.class, props.getProperty("screenSize"), oldSize);
         syncToHeadset = parseBoolean(props.getProperty("syncToHeadset"), true);
         headsetOffTo2D = parseBoolean(props.getProperty("headsetOffTo2D"), true);
-        setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), 2.6));
-        setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), 2.0));
+        setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), DEFAULT_SCREEN_WIDTH));
+        setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), DEFAULT_SCREEN_DISTANCE));
         setScreenHeight((float) parseDouble(props.getProperty("screenHeight"), 0));
-        setScreenCurvature((int) Math.round(parseDouble(props.getProperty("screenCurvature"), 0)));
+        setScreenCurvature((int) Math.round(parseDouble(props.getProperty("screenCurvature"), DEFAULT_SCREEN_CURVATURE)));
         flipScreen = parseBoolean(props.getProperty("flipScreen"), false);
         previewBothEyes = parseBoolean(props.getProperty("previewBothEyes"), false);
         cameraBobbing = parseBoolean(props.getProperty("cameraBobbing"), false);

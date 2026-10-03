@@ -31,8 +31,8 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - **Automatic, and safe to share:** with 3D on Auto (the default) the game is plain Minecraft until SteamVR is
   running with a headset connected, then the screen appears; quit SteamVR, unplug the headset or (by default) just
   take it off your head, and it's plain Minecraft on the monitor again. Friends playing the same mod pack on a
-  monitor don't have to change anything. A "3D: Auto / On / Off" button sits in the top left of Minecraft's Options
-  screen; On also shows half side-by-side 3D in the window without SteamVR. The mod never starts SteamVR itself.
+  monitor don't have to change anything. A "3D: Auto / On / Off" button sits on the title screen next to
+  Singleplayer, like Vivecraft's VR switch; On also shows half side-by-side 3D in the window without SteamVR. The mod never starts SteamVR itself.
 - **Live screen adjustment:** while the settings are open, the screen moves and reshapes as you drag its size,
   distance, height and curve sliders; Cancel undoes it.
 - **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
@@ -57,42 +57,44 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 1. Put `blockoscope-steamvr-<version>.jar` in your `mods` folder.
 2. Start SteamVR with your headset, then Minecraft (any order; the screen appears within a few seconds of both
    running). Keep the game window focused for keyboard and mouse.
-3. Press **F8** to bring the screen in front of you. Adjust it under **Mods > Blockoscope SteamVR > SteamVR screen**.
+3. Press **F8** to bring the screen in front of you. Adjust it under **Mods > Blockoscope SteamVR > Screen** (it moves live while you drag).
 
-If the picture is upside down in the headset, turn on **Flip picture**; if the depth looks inside-out, **Swap eyes**.
+If the picture is upside down in the headset, turn on **Picture > Flip upside down**; if the depth looks inside-out,
+**Depth > Swap eyes**.
 Java may print a one-time warning about "restricted methods": that is the mod calling SteamVR's library and is harmless.
 
 ## Settings
 
-**Mods > Blockoscope SteamVR** (needs Mod Menu and Cloth Config). Saving applies changes immediately. Everything is also
-stored in `config/blockoscope-steamvr.properties` (the first time, settings are taken over from Parallax Screen or
+**Mods > Blockoscope SteamVR** (needs Mod Menu and Cloth Config), in tabs General, Screen, Picture, Depth, HUD & Hand,
+Comfort and Cursor. Hover over a setting to see what it does; settings that don't apply are greyed out. Saving applies
+changes immediately. Everything is also stored in `config/blockoscope-steamvr.properties` (the first time, settings are taken over from Parallax Screen or
 copied from Blockoscope SBS / Parallax Theater, if present):
 
 | Key | Default | Meaning |
 |---|---|---|
-| `mode` | `auto` | `auto`: 3D on the SteamVR screen while SteamVR runs, normal 2D otherwise (safe in a mod pack shared with people without VR); `on`: always 3D (half side-by-side in the window without SteamVR); `off`. Also on a "3D:" button in the Options screen; F9 switches between on and off |
-| `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
+| `mode` | `auto` | 3D: `auto` = only while you use a headset in SteamVR, normal Minecraft otherwise (safe in a mod pack shared with people without VR); `on` = always (half side-by-side in the window without SteamVR); `off`. Also the title screen's 3D button; F9 switches between on and off |
+| `steamVrScreen` | `true` | Use SteamVR: show 3D on a screen in SteamVR (`false` = window only) |
 | `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen (height follows the window); `0` = automatic (1.5x what the headset shows, rounded so the HUD lands on whole pixels) |
 | `syncToHeadset` | `true` | One game frame per headset refresh while the SteamVR screen is on |
-| `headsetOffTo2D` | `true` | Back to normal 2D while the headset is off your head (proximity sensor), like Vivecraft's hot switching; `false` = only when it is disconnected or asleep |
-| `screenSize` | `custom` | `custom`; `true_scale` (the screen grows to the game's FOV) or `match_fov` (the game's FOV follows the screen): both life-size, focused at the screen |
-| `screenWidth` | `2.6` | Screen width in metres (`custom` and `match_fov`) |
-| `screenDistance` | `2.0` | Metres from your head to the screen, applied when it is placed or recentered (F8) |
+| `headsetOffTo2D` | `true` | Headset off = normal view: normal Minecraft on the monitor while the headset is off your head (proximity sensor), like Vivecraft's hot switching; `false` = only when it is disconnected or asleep |
+| `screenSize` | `custom` | FOV link: `custom` (Off: set the width yourself), `true_scale` (Screen fits FOV: the width follows your FOV) or `match_fov` (FOV fits screen: your FOV follows the width and distance); both linked modes are life-size and focus on the screen |
+| `screenWidth` | `4.3` | Screen width in metres (not used with `true_scale`) |
+| `screenDistance` | `2.8` | Metres from your head (where it was at the last F8) to the screen |
 | `screenHeight` | `0` | Metres above (or below) your eyes |
-| `screenCurvature` | `0` | Curve of the screen in % (`0` = flat) |
+| `screenCurvature` | `10` | Curve of the screen in % (`0` = flat) |
 | `previewBothEyes` | `false` | Window shows both eyes side by side instead of the left eye |
 | `flipScreen` | `false` | Flip the picture in the headset upside down |
 | `renderScale` | `100` | Window side-by-side only: % of the half-window resolution each eye renders at |
 | `depthPercent` | `100` | 3D strength as a % of average eye spacing (6.4 cm); `0` = flat |
-| `focusDistance` | `10` | Metres that sit exactly on the screen surface; `0` = infinity |
+| `focusDistance` | `4` | Metres that sit exactly on the screen surface; `0` = infinity |
 | `swapEyes` | `false` | Swap the eyes (if the depth looks inside-out) |
 | `hudDepth` | `scene` | In-game HUD depth: `scene` (on what is behind the hotbar), `aim` (crosshair's depth), `fixed` |
-| `hudDistance` | `1.35` | Metres for a fixed HUD depth; `0` = on the screen surface |
+| `hudDistance` | `1.2` | Metres for a fixed HUD depth; `0` = on the screen surface |
 | `menuDistance` | `0` | Metres at which menus float; `0` = on the screen surface |
 | `crosshairAtTarget` | `true` | Crosshair at the depth of what it aims at within reach (`false` = with the HUD) |
 | `crosshairRestOffset` | `0` | Metres nearer (negative) or farther than your reach where the crosshair rests |
 | `handDepthPercent` | `50` | Depth of your hand and held item, % of the world's |
-| `handReach` | `30` | Centimetres the arm reaches further forward in 3D; `0` = vanilla |
+| `handReach` | `0` | Arm length: centimetres the hand is held further out in 3D; `0` = vanilla |
 | `handRaise` | `0` | Centimetres the hand and held item are raised in 3D |
 | `handInward` | `0` | Centimetres the hand and held item are moved towards the middle in 3D |
 | `cameraBobbing` | `false` | Vanilla view bobbing of the camera in 3D |
