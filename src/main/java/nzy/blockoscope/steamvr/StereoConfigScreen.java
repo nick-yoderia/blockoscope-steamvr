@@ -90,18 +90,25 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setSyncToHeadset)
             .build());
 
-        screen.addEntry(entries.startBooleanToggle(Component.literal("Screen size"), StereoConfig.trueScale())
-            .setDefaultValue(false)
-            .setYesNoTextSupplier(on -> Component.literal(on ? "True scale" : "Custom"))
-            .setTooltip(Component.literal("True scale = life-size world."))
-            .setSaveConsumer(StereoConfig::setTrueScale)
+        screen.addEntry(entries.startEnumSelector(Component.literal("Screen size"), StereoConfig.ScreenSize.class,
+                StereoConfig.screenSize())
+            .setDefaultValue(StereoConfig.ScreenSize.CUSTOM)
+            .setEnumNameProvider(value -> Component.literal(switch ((StereoConfig.ScreenSize) value) {
+                case CUSTOM -> "Custom";
+                case TRUE_SCALE -> "True scale (screen fits FOV)";
+                case MATCH_FOV -> "True scale (FOV fits screen)";
+            }))
+            .setTooltip(Component.literal("True scale = life-size world, no stretching at the edges."),
+                Component.literal("Screen fits FOV: the screen grows to your FOV setting."),
+                Component.literal("FOV fits screen: your FOV follows the screen width and distance."))
+            .setSaveConsumer(StereoConfig::setScreenSize)
             .build());
 
         screen.addEntry(entries.startIntSlider(Component.literal("Screen width"),
                 Math.round(StereoConfig.screenWidth() * 10), 5, 200)
             .setDefaultValue(26)
             .setTextGetter(value -> Component.literal(String.format("%.1f m", value / 10f)))
-            .setTooltip(Component.literal("Custom size only."))
+            .setTooltip(Component.literal("Custom and FOV fits screen."))
             .setSaveConsumer(value -> StereoConfig.setScreenWidth(value / 10f))
             .build());
 
@@ -231,7 +238,7 @@ public final class StereoConfigScreen {
             .build());
 
         hud.addEntry(entries.startIntSlider(Component.literal("Hand depth"), StereoConfig.handDepthPercent(), 0, 200)
-            .setDefaultValue(100)
+            .setDefaultValue(50)
             .setTextGetter(value -> Component.literal(value == 0 ? "Screen" : value + "%"))
             .setTooltip(Component.literal("Your hand and held item."))
             .setSaveConsumer(StereoConfig::setHandDepthPercent)

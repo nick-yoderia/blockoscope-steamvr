@@ -93,7 +93,7 @@ public final class VrScreen {
         if (pixelsPerTangent <= 0f) {
             return 1920;
         }
-        float width = StereoConfig.trueScale() ? StereoRenderer.trueScaleScreenWidth() : StereoConfig.screenWidth();
+        float width = StereoRenderer.screenWidth();
         float pixels = pixelsPerTangent * width / StereoConfig.screenDistance();
         return Math.max(640, Math.min(4096, Math.round(pixels / 16f) * 16));
     }
@@ -224,7 +224,7 @@ public final class VrScreen {
 
     /** Screen size and curve from the settings; only sent to SteamVR when they change. */
     private static void applyShape() throws Throwable {
-        float width = StereoConfig.trueScale() ? StereoRenderer.trueScaleScreenWidth() : StereoConfig.screenWidth();
+        float width = StereoRenderer.screenWidth();
         float curvature = StereoConfig.screenCurvature() / 100f;
         if (width != appliedWidth) {
             appliedWidth = width;

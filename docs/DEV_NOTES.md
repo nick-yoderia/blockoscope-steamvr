@@ -27,8 +27,14 @@ and height entries requested a recenter, and the user was looking at the Save bu
 drifted right after each settings change (user report in the Steam Frame). Tracking space: seated when SteamVR has a
 seated origin (so "reset seated position" carries the screen along), standing otherwise (the null driver has no seated
 origin: its seated HMD pose is flagged invalid although tracking is "Running_OK"). Width/curve are re-sent when they change;
-true scale computes the width from the game's FOV setting and window aspect (`StereoRenderer.trueScaleScreenWidth`)
-and uses the screen distance as focus distance (`StereoRenderer.focusDistance()`).
+`screenSize` (0.2.1; was the boolean `trueScale`): `custom` = width setting and the game's FOV; `true_scale` computes
+the width from the game's FOV setting and window aspect (`StereoRenderer.trueScaleScreenWidth`); `match_fov` keeps the
+width and makes the camera's FOV what the screen covers (`StereoRenderer.matchedFov`, applied by `CameraMixin` at the
+end of `Camera.calculateFov`, so sprint/water/death modifiers still apply; the hand keeps vanilla's fixed 70). Both
+life-size modes use the screen distance as focus distance (`StereoRenderer.focusDistance()`). Why: in the Steam Frame
+the user saw HUD and held item "distorted towards the edge" with FOV 90 on the default 2.6 m screen at 2 m: the game
+renders ~120 degrees across into 66 degrees of view, stretching the edges. Hand depth default lowered to 50% at the
+same time (the held tool at the screen's edge stuck far out in front of the frame).
 
 Connecting (`VrScreen.connect`, daemon thread, every 5 s while not connected): only when `vrserver.exe` is running
 (`ProcessHandle`), so the mod never launches SteamVR (initialising an overlay app would), and quitting SteamVR
@@ -228,7 +234,7 @@ screen at 1920 per eye (3840x1080 texture) and the null-driver compositor runnin
   instance and not again on relaunch; watch for it.
 
 - Block-entity breaking overlay is positioned relative to the centre camera at extraction (tiny error, not fixed).
-- Hand depth at 100% is strong (about -52 px per eye for the held item); fine in testing, lower it if it strains.
+- Hand depth: default 50% since 0.2.1 (100% was about -52 px per eye for the held item, cut by the screen edge).
 - Menu background blur showed a thin bright line at the left edge of each eye; menus now sit on the screen surface
   (no shift) by default, which should remove it (not looked at closely yet).
 - Title screen / panorama with 0.1.3+ not checked yet.

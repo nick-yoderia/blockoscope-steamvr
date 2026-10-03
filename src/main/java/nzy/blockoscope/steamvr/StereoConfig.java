@@ -20,6 +20,16 @@ public final class StereoConfig {
         FIXED
     }
 
+    /** How the SteamVR screen's size and the game's field of view relate. */
+    public enum ScreenSize {
+        /** Screen width as set; the game's own field of view (the picture is stretched or squeezed to fit). */
+        CUSTOM,
+        /** The screen is sized to cover the game's field of view: life-size world, the screen may get big. */
+        TRUE_SCALE,
+        /** The game's field of view is set to what the screen covers: life-size world on a screen of the set width. */
+        MATCH_FOV
+    }
+
     /** Average human eye separation in metres; depth strength is a percentage of this. */
     public static final float AVERAGE_IPD = 0.064f;
 
@@ -54,7 +64,7 @@ public final class StereoConfig {
         "steamVrScreen: show the game on a screen in SteamVR (false = half side-by-side in the window)",
         "eyeResolution: width in pixels each eye renders at for the SteamVR screen (height follows the window's shape); 0 = automatic, as many as the headset shows across the screen",
         "syncToHeadset: one game frame per headset refresh while the SteamVR screen is on (smooth motion; runs free when the game can't keep up)",
-        "trueScale: size the SteamVR screen to the game's field of view and focus at the screen, so the world is life-size (ignores screenWidth and focusDistance)",
+        "screenSize: custom (screenWidth, the game's FOV), true_scale (the screen grows to the game's FOV) or match_fov (the game's FOV shrinks to the screen); both life-size modes focus at the screen and ignore focusDistance",
         "screenWidth: width of the SteamVR screen in metres",
         "screenDistance: metres from your head (where it was at the last recenter, F8) to the SteamVR screen",
         "screenHeight: metres the SteamVR screen sits above (or below) your eyes",
@@ -68,7 +78,7 @@ public final class StereoConfig {
     private static int renderScale = 100;
     private static int depthPercent = 100;
     private static float focusDistance = 10f;
-    private static int handDepthPercent = 100;
+    private static int handDepthPercent = 50;
     private static int handReach = 30;
     private static int handRaise = 0;
     private static int handInward = 0;
@@ -81,7 +91,7 @@ public final class StereoConfig {
     private static boolean steamVrScreen = true;
     private static int eyeResolution = 0;
     private static boolean syncToHeadset = true;
-    private static boolean trueScale = false;
+    private static ScreenSize screenSize = ScreenSize.CUSTOM;
     private static float screenWidth = 2.6f;
     private static float screenDistance = 2.0f;
     private static float screenHeight = 0f;
@@ -116,7 +126,9 @@ public final class StereoConfig {
     public static boolean swapEyes() { return swapEyes; }
     public static boolean steamVrScreen() { return steamVrScreen; }
     public static int eyeResolution() { return eyeResolution; }
-    public static boolean trueScale() { return trueScale; }
+    public static ScreenSize screenSize() { return screenSize; }
+    /** True in either life-size mode: the screen covers exactly the game's field of view and is the focus distance. */
+    public static boolean lifeSize() { return screenSize != ScreenSize.CUSTOM; }
     public static float screenWidth() { return screenWidth; }
     public static float screenDistance() { return screenDistance; }
     public static float screenHeight() { return screenHeight; }
@@ -147,7 +159,7 @@ public final class StereoConfig {
     public static boolean syncToHeadset() { return syncToHeadset; }
     public static void setSyncToHeadset(boolean value) { syncToHeadset = value; }
     public static void setEyeResolution(int value) { eyeResolution = value <= 0 ? 0 : Math.max(640, Math.min(4096, value)); }
-    public static void setTrueScale(boolean value) { trueScale = value; }
+    public static void setScreenSize(ScreenSize value) { screenSize = value == null ? ScreenSize.CUSTOM : value; }
     public static void setScreenWidth(float value) { screenWidth = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenDistance(float value) { screenDistance = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenHeight(float value) { screenHeight = Math.max(-3f, Math.min(3f, value)); }
@@ -180,7 +192,7 @@ public final class StereoConfig {
         setRenderScale((int) Math.round(parseDouble(props.getProperty("renderScale"), 100)));
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
         setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 10));
-        setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), 100)));
+        setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), 50)));
         setHandReach((int) Math.round(parseDouble(props.getProperty("handReach"), 30)));
         setHandRaise((int) Math.round(parseDouble(props.getProperty("handRaise"), 0)));
         setHandInward((int) Math.round(parseDouble(props.getProperty("handInward"), 0)));
@@ -194,7 +206,9 @@ public final class StereoConfig {
         swapEyes = parseBoolean(props.getProperty("swapEyes"), false);
         steamVrScreen = parseBoolean(props.getProperty("steamVrScreen"), true);
         setEyeResolution((int) Math.round(parseDouble(props.getProperty("eyeResolution"), 0)));
-        trueScale = parseBoolean(props.getProperty("trueScale"), false);
+        // 0.2.0 had trueScale (true = the screen follows the field of view).
+        ScreenSize oldSize = parseBoolean(props.getProperty("trueScale"), false) ? ScreenSize.TRUE_SCALE : ScreenSize.CUSTOM;
+        screenSize = parseEnum(ScreenSize.class, props.getProperty("screenSize"), oldSize);
         syncToHeadset = parseBoolean(props.getProperty("syncToHeadset"), true);
         setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), 2.6));
         setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), 2.0));
@@ -228,7 +242,7 @@ public final class StereoConfig {
         out.setProperty("swapEyes", String.valueOf(swapEyes));
         out.setProperty("steamVrScreen", String.valueOf(steamVrScreen));
         out.setProperty("eyeResolution", String.valueOf(eyeResolution));
-        out.setProperty("trueScale", String.valueOf(trueScale));
+        out.setProperty("screenSize", screenSize.name().toLowerCase(java.util.Locale.ROOT));
         out.setProperty("syncToHeadset", String.valueOf(syncToHeadset));
         out.setProperty("screenWidth", String.valueOf(screenWidth));
         out.setProperty("screenDistance", String.valueOf(screenDistance));

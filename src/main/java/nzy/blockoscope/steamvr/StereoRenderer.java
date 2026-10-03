@@ -129,11 +129,38 @@ public final class StereoRenderer {
     }
 
     /**
-     * The distance that sits on the screen surface: the screen's own distance in true-scale mode (see
-     * {@link #trueScaleScreenWidth}), the focus distance setting otherwise.
+     * The distance that sits on the screen surface: the screen's own distance in the true-scale modes (see
+     * {@link #trueScaleScreenWidth}, {@link #matchedFov}), the focus distance setting otherwise.
      */
     static float focusDistance() {
-        return VrScreen.active() && StereoConfig.trueScale() ? StereoConfig.screenDistance() : StereoConfig.focusDistance();
+        return VrScreen.active() && StereoConfig.lifeSize() ? StereoConfig.screenDistance() : StereoConfig.focusDistance();
+    }
+
+    /** Width of the SteamVR screen in metres: grown to the field of view in true scale, the setting otherwise. */
+    static float screenWidth() {
+        return StereoConfig.screenSize() == StereoConfig.ScreenSize.TRUE_SCALE ? trueScaleScreenWidth() : StereoConfig.screenWidth();
+    }
+
+    /**
+     * True scale the other way round: the vertical field of view, in degrees, that the SteamVR screen covers from
+     * where you sit (its width over the window's aspect, at the screen distance). Rendering at it shows every
+     * direction on the screen where it really lies from your eyes. At a game FOV wider than the screen (FOV 90 is
+     * about 120 degrees across, a 2.6 m screen at 2 m covers 66) the picture is squeezed into a smaller angle and
+     * things near the edges look stretched outwards, which in stereo also bends depth; the user saw HUD and held
+     * item "distorted towards the edge". The hand keeps vanilla's own fixed hand FOV.
+     */
+    public static float matchedFov() {
+        Minecraft minecraft = Minecraft.getInstance();
+        int width = windowWidth > 0 ? windowWidth : minecraft.getWindow().getWidth();
+        int height = windowHeight > 0 ? windowHeight : minecraft.getWindow().getHeight();
+        double aspect = height > 0 ? (double) width / height : 16.0 / 9.0;
+        double halfHeight = StereoConfig.screenWidth() / aspect / 2.0;
+        return (float) Math.toDegrees(2.0 * Math.atan(halfHeight / StereoConfig.screenDistance()));
+    }
+
+    /** True while the game's field of view follows the screen (see {@link #matchedFov}). */
+    public static boolean fovFollowsScreen() {
+        return VrScreen.active() && StereoConfig.screenSize() == StereoConfig.ScreenSize.MATCH_FOV;
     }
 
     /**

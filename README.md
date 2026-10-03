@@ -26,7 +26,8 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
   it can't keep up. While the screen is up, the monitor's VSync and Minecraft's AFK and minimised-window frame-rate
   limits are ignored: you may be watching without touching anything.
 - **True scale** (optional): the screen covers exactly the game's field of view and the focus is at the screen, so
-  with depth strength 100% the world is life-size, as if looking through a window.
+  with depth strength 100% the world is life-size, as if looking through a window, with no stretching towards the
+  edges. Either the screen grows to your FOV setting, or your FOV follows the screen's width and distance.
 - **Automatic:** whenever SteamVR is running the screen is there; when it isn't (or you quit it) the window shows half
   side-by-side 3D instead. The mod never starts SteamVR itself.
 - **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
@@ -68,8 +69,8 @@ copied from Blockoscope SBS / Parallax Theater, if present):
 | `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
 | `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen; `0` = automatic (what the headset shows) |
 | `syncToHeadset` | `true` | One game frame per headset refresh while the SteamVR screen is on |
-| `trueScale` | `false` | Size the screen to the game's field of view and focus at the screen (life-size world) |
-| `screenWidth` | `2.6` | Screen width in metres (when not true scale) |
+| `screenSize` | `custom` | `custom`; `true_scale` (the screen grows to the game's FOV) or `match_fov` (the game's FOV follows the screen): both life-size, focused at the screen |
+| `screenWidth` | `2.6` | Screen width in metres (`custom` and `match_fov`) |
 | `screenDistance` | `2.0` | Metres from your head to the screen, applied when it is placed or recentered (F8) |
 | `screenHeight` | `0` | Metres above (or below) your eyes |
 | `screenCurvature` | `0` | Curve of the screen in % (`0` = flat) |
@@ -84,7 +85,7 @@ copied from Blockoscope SBS / Parallax Theater, if present):
 | `menuDistance` | `0` | Metres at which menus float; `0` = on the screen surface |
 | `crosshairAtTarget` | `true` | Crosshair at the depth of what it aims at within reach (`false` = with the HUD) |
 | `crosshairRestOffset` | `0` | Metres nearer (negative) or farther than your reach where the crosshair rests |
-| `handDepthPercent` | `100` | Depth of your hand and held item, % of the world's |
+| `handDepthPercent` | `50` | Depth of your hand and held item, % of the world's |
 | `handReach` | `30` | Centimetres the arm reaches further forward in 3D; `0` = vanilla |
 | `handRaise` | `0` | Centimetres the hand and held item are raised in 3D |
 | `handInward` | `0` | Centimetres the hand and held item are moved towards the middle in 3D |
