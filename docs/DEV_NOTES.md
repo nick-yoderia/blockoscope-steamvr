@@ -156,6 +156,12 @@ Tools in `..\mcdev` (outside the repo):
   `Start-Process ...\SteamVR\bin\win64\vrstartup.exe`. The null headset's view is the compositor's "Headset Window"
   (`winshot.ps1 -Process vrcompositor` captures it with PrintWindow; not while the PC is locked). Quit it by closing
   the `vrmonitor` window. SteamVR's stereo screenshot (`vrshot\VrShot.java`) fails without a scene app.
+- What the mod hands SteamVR: create `config/parallax-screen.dump` in the instance; the next frame's screen texture is
+  saved to `.parallax-screen/screen.png` (`TextureDump`, development only) and the file deleted. Works while the PC is
+  locked; `disp2.py` measures it like a window screenshot (eye pixels). Note Blaze3D leaves `GL_PACK_ROW_LENGTH` at
+  2048 after its own read-backs; reset it (and skips/alignment) around any `glGetTextureImage`, or rows come out
+  sheared. First measurement (null driver, auto 1200 px eyes, focus 4 m): hotbar -20 px on the dirt edge below it,
+  crosshair +2 px resting at reach, far terrain +5 px; picture upright with GL rows read bottom-up.
 - `cmd.ps1 -Commands @('time set noon', ...)`: chat commands via the clipboard; `keys.ps1 -Keys @('{F9}')`.
   Both refuse to type unless the game window is in front (`focus.ps1`), so keystrokes can't leak elsewhere.
 - `disp2.py shot.png name=y0,y1,x0,x1 ...`: sub-pixel disparity of a region (full-res coordinates, left-half x).
