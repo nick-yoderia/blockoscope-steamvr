@@ -134,6 +134,31 @@ and re-centred. Slots verified against LWJGL 3.3.6's `OpenVR$IVRSystem`/`$IVROve
 driver's headset counts as worn; when its SteamVR quits, the headset goes before the quit event and the game logged
 "No headset in use" and went 2D. Confirmed by the user in the Steam Frame over Steam Link (proximity sensor works there).
 
+Depth on the screen (0.3.2): a point d metres into the world lands (W/2) * m00 * e * (1/d - 1/f) metres to the
+crossed side on the screen (W screen width, m00 the projection's horizontal scale, e the eye-camera spacing, f focus)
+and two pictures that far apart on a screen S metres away fuse at S * I / (I + that) (I the viewer's eye spacing).
+With the user's settings (FOV 90 in a 21:9 window = m00 0.419, 5.2 m screen at 2.8 m, focus 4 m) a wall 0.3 m away
+came out at 0.64 m at depth 100% (0.84 m at 70%, the user's later setting): "close to blocks is hard to focus on".
+- `StereoRenderer.stereoIpd()` replaces `StereoConfig.ipd()` everywhere (eyes, hand, HUD, crosshair): depth strength x
+  the headset's IPD (`OpenVrApi.userIpd`, Prop_UserIpdMeters_Float 2008, read with every headset check; average 64 mm
+  if SteamVR doesn't say; the null driver doesn't) x the near scale below.
+- Near limit (`updateNearLimit`, setting `nearLimit` "Nearest pop-out", default 1.0 m, 0 = off; SteamVR screen only):
+  35 rays (`nearestAlongView`, shared with the HUD's rays; 7 x 5 over NDC +-0.75, 2.5 m deep along the view, block
+  outlines and entities) find the nearest thing; if it would fuse nearer than the limit the eye spacing is scaled so
+  it fuses exactly there. Eases in over 60 ms, out over 500 ms.
+- Hand in front (`handInFront`): the hand is drawn over everything, so its disparity is kept at least as crossed as
+  the nearest thing in view (reference distance `HAND_DISTANCE` 0.8 m + arm length). Before, a wall a step away came
+  out nearer than the hand that covers it.
+- Measured on the null headset with texture dumps (depth 70%, eyes 44.8 mm, m00 0.419): wall at 0.3 m with the limit
+  off -74.5 px per eye (formula -74.7), with the 1.0 m limit -57.1 px (formula for 1.0 m: -57.2), held item -82 px
+  (in front; at reference 0.5 m it was -52, behind the wall); clouds +5.9 px, far cliffs +6.0 px (infinity +6.1). The
+  limit lets go within ~1 s of stepping back. Entities, block entities, block outline, breaking overlay, weather and
+  clouds are all positioned from the per-eye camera at submit time (checked in LevelRenderer), so nothing near the
+  camera sits at the centre camera's depth.
+- Null headset standby: SteamVR 2.18 put the null HMD in standby 5 s after waking ("No headset in use"); the test
+  config now has `power.turnOffScreensTimeout` 3600 and `pauseCompositorOnStandby` false; this test used
+  `headsetOffTo2D=false` in the instance as well (not checked whether it is still needed; restore it afterwards).
+
 ## OpenVR binding (`OpenVrApi`)
 
 LWJGL's OpenVR bindings (last release 3.3.6, which Vivecraft bundles) don't load on LWJGL 3.4 (Minecraft 26.2):

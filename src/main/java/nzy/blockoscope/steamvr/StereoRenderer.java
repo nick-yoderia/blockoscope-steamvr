@@ -79,6 +79,10 @@ public final class StereoRenderer {
     private static boolean guiWasMenu;
     /** 1 / distance of the nearest thing behind the hotbar and status bars this frame, or -1 for nothing. */
     private static float hudSceneInverseDistance = -1f;
+    /** 1 / distance of the nearest thing in view (0 = nothing near); see {@link #updateNearLimit}. */
+    private static float nearInverseDistance;
+    /** Share of the full eye spacing used this frame, below 1 near blocks; see {@link #updateNearLimit}. */
+    private static float nearScale = 1f;
     /** Length of the HUD's depth rays, in blocks; anything farther has next to no disparity anyway. */
     private static final double HUD_RAY_LENGTH = 64.0;
     /** This frame the GUI is drawn into the window after the eyes are packed, not into the eye targets. */
@@ -128,6 +132,20 @@ public final class StereoRenderer {
 
     public static int eyeHeight() {
         return eyeHeight;
+    }
+
+    /**
+     * Distance between the two eye cameras this frame, in metres: the depth strength's share of your own eye
+     * spacing (SteamVR's, so 100% matches your eyes), lowered near blocks by {@link #updateNearLimit}.
+     */
+    static float stereoIpd() {
+        return baseIpd() * nearScale;
+    }
+
+    /** {@link #stereoIpd} without the near limit. */
+    private static float baseIpd() {
+        float eyes = VrScreen.active() ? VrScreen.viewerIpd() : StereoConfig.AVERAGE_IPD;
+        return eyes * StereoConfig.depthPercent() / 100f;
     }
 
     /**
@@ -235,6 +253,7 @@ public final class StereoRenderer {
         lastFrameNanos = now;
         updateCrosshairDepth(mainCamera, seconds);
         hudSceneInverseDistance = hudSceneDepth(mainCamera, projection, window);
+        updateNearLimit(mainCamera, projection, seconds);
         updateGuiDepth(seconds);
         // A GUI that blurs the world behind it (menus) or draws the title panorama needs the eye's own world under it,
         // so it stays in the eye targets. Everything else is drawn into the window at full resolution afterwards.
@@ -412,13 +431,37 @@ public final class StereoRenderer {
      */
     public static Matrix4f eyeHandProjection(Matrix4f projection) {
         // Scaling the eye offset and the shear together scales the hand's disparity (0 = on the screen surface).
-        float halfIpd = StereoConfig.ipd() / 2f * StereoConfig.handDepthPercent() / 100f;
+        float halfIpd = stereoIpd() / 2f * StereoConfig.handDepthPercent() / 100f;
         float side = side();
         float focus = focusDistance();
         // Shift in clip space (x += k * w) rather than editing one element, so it stays right when the matrix
         // already contains other transforms (Iris scales the hand's depth and adds view bobbing).
         float shift = focus > 0f ? side * projection.m00() * halfIpd / focus : 0f;
+        shift -= side * handInFront(projection.m00(), halfIpd, focus) / 2f;
         return new Matrix4f().m30(shift).mul(projection).translate(-side * halfIpd, 0f, 0f);
+    }
+
+    /**
+     * About how far ahead the far side of the hand and held item sit, before the arm length setting, in metres. At
+     * 0.5 the held item still measured 4-6 eye pixels behind a wall it covered.
+     */
+    private static final float HAND_DISTANCE = 0.8f;
+
+    /**
+     * Extra crossed disparity (clip units, both eyes together) that brings the hand forward to the nearest thing in
+     * view when that would otherwise come out nearer than the hand. The hand is drawn over everything; with a wall
+     * a step away (0.64 m out of the screen) and the hand at its own depth (about 1.2 m at 50%), the eyes saw the
+     * hand behind the wall it covers, a conflict that reads as broken depth.
+     */
+    private static float handInFront(float handScale, float handHalfIpd, float focus) {
+        if (nearInverseDistance <= 0f) {
+            return 0f;
+        }
+        float inverseFocus = focus > 0f ? 1f / focus : 0f;
+        float handInverse = 1f / (HAND_DISTANCE + StereoConfig.handReach() / 100f);
+        float hand = handScale * 2f * handHalfIpd * (handInverse - inverseFocus);
+        float nearest = worldProjectionScale * stereoIpd() * (nearInverseDistance - inverseFocus);
+        return Math.max(0f, nearest - hand);
     }
 
     /**
@@ -469,7 +512,7 @@ public final class StereoRenderer {
         }
         float focus = focusDistance();
         float inverseFocus = focus > 0f ? 1f / focus : 0f;
-        float offset = guiSide() * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - crosshairInverseDistance);
+        float offset = guiSide() * worldProjectionScale * stereoIpd() / 2f * (inverseFocus - crosshairInverseDistance);
         return guiProjection(projection, snapToPixels(offset));
     }
 
@@ -551,9 +594,7 @@ public final class StereoRenderer {
      * under water would hit the water around the camera).
      */
     private static float hudSceneDepth(Camera camera, Matrix4f projection, WindowRenderState window) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null || camera == null || !camera.isInitialized() || projection == null
-            || window.guiScale <= 0 || projection.m00() == 0f || projection.m11() == 0f) {
+        if (window.guiScale <= 0) {
             return -1f;
         }
         // The hotbar is 182 x 22 GUI pixels at the bottom centre; hearts, food and the XP bar sit up to ~40 above.
@@ -561,24 +602,46 @@ public final class StereoRenderer {
         float guiHeight = (float) window.height / window.guiScale;
         float[] xs = {-88f, -45f, 0f, 45f, 88f};
         float[] ys = {3f, 12f, 32f};
+        float[] ndcXs = new float[xs.length];
+        float[] ndcYs = new float[ys.length];
+        for (int i = 0; i < xs.length; i++) {
+            ndcXs[i] = (guiWidth / 2f + xs[i]) / guiWidth * 2f - 1f;
+        }
+        for (int j = 0; j < ys.length; j++) {
+            ndcYs[j] = 1f - (guiHeight - ys[j]) / guiHeight * 2f;
+        }
+        double nearest = nearestAlongView(camera, projection, ndcXs, ndcYs, HUD_RAY_LENGTH);
+        return nearest < 0.0 ? -1f : (float) (1.0 / Math.max(0.3, nearest));
+    }
+
+    /**
+     * The nearest block (outline, so grass counts) or entity seen through a grid of points on the screen (NDC x and y,
+     * -1..1): rays from the centre camera, {@code length} deep along the view. Returns the distance along the view, or
+     * -1 when nothing is that near. Fluids are left out, as for the crosshair (a ray starting under water would hit the
+     * water around the camera).
+     */
+    private static double nearestAlongView(Camera camera, Matrix4f projection, float[] ndcXs, float[] ndcYs, double length) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null || camera == null || !camera.isInitialized() || projection == null
+            || projection.m00() == 0f || projection.m11() == 0f) {
+            return -1.0;
+        }
         Vec3 from = camera.position();
         Vector3fc forward = camera.forwardVector();
         Vector3fc up = camera.upVector();
         Vector3fc left = camera.leftVector();
-        Vec3[] ends = new Vec3[xs.length * ys.length];
+        Vec3[] ends = new Vec3[ndcXs.length * ndcYs.length];
         double minX = from.x, minY = from.y, minZ = from.z, maxX = from.x, maxY = from.y, maxZ = from.z;
-        for (int j = 0; j < ys.length; j++) {
-            for (int i = 0; i < xs.length; i++) {
-                float ndcX = (guiWidth / 2f + xs[i]) / guiWidth * 2f - 1f;
-                float ndcY = 1f - (guiHeight - ys[j]) / guiHeight * 2f;
-                float rightAmount = ndcX / projection.m00();
-                float upAmount = ndcY / projection.m11();
-                // One unit along the view per unit of direction, so the ray ends HUD_RAY_LENGTH ahead in depth.
+        for (int j = 0; j < ndcYs.length; j++) {
+            for (int i = 0; i < ndcXs.length; i++) {
+                float rightAmount = ndcXs[i] / projection.m00();
+                float upAmount = ndcYs[j] / projection.m11();
+                // One unit along the view per unit of direction, so the ray ends `length` ahead in depth.
                 Vec3 direction = new Vec3(forward.x() - left.x() * rightAmount + up.x() * upAmount,
                     forward.y() - left.y() * rightAmount + up.y() * upAmount,
                     forward.z() - left.z() * rightAmount + up.z() * upAmount);
-                Vec3 end = from.add(direction.scale(HUD_RAY_LENGTH));
-                ends[j * xs.length + i] = end;
+                Vec3 end = from.add(direction.scale(length));
+                ends[j * ndcXs.length + i] = end;
                 minX = Math.min(minX, end.x);
                 minY = Math.min(minY, end.y);
                 minZ = Math.min(minZ, end.z);
@@ -607,7 +670,57 @@ public final class StereoRenderer {
                 }
             }
         }
-        return nearest == Double.MAX_VALUE ? -1f : (float) (1.0 / Math.max(0.3, nearest));
+        return nearest == Double.MAX_VALUE ? -1.0 : nearest;
+    }
+
+    /** Points on the screen (NDC) whose rays find the nearest thing in view, for {@link #updateNearLimit}. */
+    private static final float[] NEAR_XS = {-0.75f, -0.5f, -0.25f, 0f, 0.25f, 0.5f, 0.75f};
+    private static final float[] NEAR_YS = {-0.75f, -0.375f, 0f, 0.375f, 0.75f};
+    /** How deep the nearest-thing rays look, in metres; nothing farther needs gentler 3D or a hand in front. */
+    private static final double NEAR_RAY_LENGTH = 2.5;
+    /** Easing of the near limit: quick when something comes near, slow when it goes. */
+    private static final float NEAR_EASE_IN = 0.06f;
+    private static final float NEAR_EASE_OUT = 0.5f;
+
+    /**
+     * Keeps whatever is nearest in view from coming out of the SteamVR screen nearer to you than the near limit.
+     *
+     * On the screen, a point d metres into the world lands (W/2) * m00 * e * (1/d - 1/focus) metres to the
+     * crossed side in the two eyes (W the screen's width, m00 the projection's horizontal scale, e the eye
+     * spacing), and two pictures that far apart on a screen S metres away fuse at S * I / (I + that) metres
+     * (I your own eye spacing). A block 0.3 m in front of you (a wall you walk up to) came out at about 0.64 m with
+     * the user's settings (FOV 90 in a 21:9 window, 5.2 m screen at 2.8 m, focus 4 m): too near to focus on, the
+     * user said. When the nearest thing in view would come nearer than the limit, the eye spacing shrinks just
+     * enough that it sits at the limit; everything else in the picture keeps its order in depth. It eases
+     * quickly down and slowly back up, so walking past a block doesn't pump the depth. Only on the SteamVR
+     * screen, where the screen's size and distance are known.
+     */
+    private static void updateNearLimit(Camera camera, Matrix4f projection, float seconds) {
+        double nearest = nearestAlongView(camera, projection, NEAR_XS, NEAR_YS, NEAR_RAY_LENGTH);
+        nearInverseDistance = nearest < 0.0 ? 0f : (float) (1.0 / Math.max(0.05, nearest));
+        float target = 1f;
+        float limit = StereoConfig.nearLimit();
+        float screen = StereoConfig.screenDistance();
+        float focus = focusDistance();
+        float inverseFocus = focus > 0f ? 1f / focus : 0f;
+        if (VrScreen.active() && limit > 0f && limit < screen && projection != null && nearest >= 0.0) {
+            float allowed = VrScreen.viewerIpd() * (screen / limit - 1f);
+            float crossedPerInverse = screenWidth() / 2f * projection.m00() * baseIpd();
+            if (crossedPerInverse > 0f) {
+                float limitInverse = inverseFocus + allowed / crossedPerInverse;
+                if (nearInverseDistance > limitInverse) {
+                    target = (limitInverse - inverseFocus) / (nearInverseDistance - inverseFocus);
+                }
+            }
+        }
+        float tau = target < nearScale ? NEAR_EASE_IN : NEAR_EASE_OUT;
+        nearScale += (target - nearScale) * (1f - (float) Math.exp(-Math.min(seconds, 0.25f) / tau));
+        if (StereoDebug.ENABLED && eyePassCounter % 240 == 0) {
+            StereoDebug.log("near " + (nearest < 0.0 ? "none" : String.format("%.2f m", nearest))
+                + ", depth x" + String.format("%.2f", nearScale) + " (target " + String.format("%.2f", target) + ", m00 "
+                + (projection == null ? "?" : String.format("%.3f", projection.m00())) + ", eyes "
+                + String.format("%.1f mm", baseIpd() * 1000f) + ")");
+        }
     }
 
     /** The GUI's sideways shift for the eye being drawn, in clip units of its area, rounded to whole pixels. */
@@ -622,7 +735,7 @@ public final class StereoRenderer {
         }
         float focus = focusDistance();
         float inverseFocus = focus > 0f ? 1f / focus : 0f;
-        return snapToPixels(side * worldProjectionScale * StereoConfig.ipd() / 2f * (inverseFocus - guiInverseDistance));
+        return snapToPixels(side * worldProjectionScale * stereoIpd() / 2f * (inverseFocus - guiInverseDistance));
     }
 
     /**
@@ -684,7 +797,7 @@ public final class StereoRenderer {
         if (centre == null || projection == null || camera.orientation == null) {
             return;
         }
-        float halfIpd = StereoConfig.ipd() / 2f;
+        float halfIpd = stereoIpd() / 2f;
         float side = which == LEFT ? -1f : 1f;
         Vector3f right = camera.orientation.transform(new Vector3f(1f, 0f, 0f));
         camera.pos = centre.add(right.x * side * halfIpd, right.y * side * halfIpd, right.z * side * halfIpd);

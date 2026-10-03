@@ -43,6 +43,7 @@ final class OpenVrApi {
     static final int UNIVERSE_STANDING = 1;
     static final int EVENT_QUIT = 700;
     static final int PROP_DISPLAY_FREQUENCY = 2002;
+    static final int PROP_USER_IPD_METERS = 2008;
     static final int MAX_DEVICES = 64;
     static final int HMD_INDEX = 0;
     /**
@@ -336,6 +337,15 @@ final class OpenVrApi {
             MemorySegment error = arena.allocate(JAVA_INT);
             float hz = (float) getFloatProperty.invokeExact(HMD_INDEX, PROP_DISPLAY_FREQUENCY, error);
             return error.get(JAVA_INT, 0) == 0 && hz > 0f ? hz : 0f;
+        }
+    }
+
+    /** The wearer's eye spacing in metres as the headset reports it (its IPD setting or dial), or 0 if unknown. */
+    static float userIpd() throws Throwable {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment error = arena.allocate(JAVA_INT);
+            float ipd = (float) getFloatProperty.invokeExact(HMD_INDEX, PROP_USER_IPD_METERS, error);
+            return error.get(JAVA_INT, 0) == 0 && ipd >= 0.04f && ipd <= 0.09f ? ipd : 0f;
         }
     }
 

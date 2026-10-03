@@ -262,6 +262,19 @@ public final class StereoConfigScreen {
             .setSaveConsumer(value -> StereoConfig.setFocusDistance(value))
             .build());
 
+        depth.addEntry(entries.startIntSlider(Component.literal("Nearest pop-out"),
+                Math.round(StereoConfig.nearLimit() * 10), 0, 25)
+            .setDefaultValue(Math.round(StereoConfig.DEFAULT_NEAR_LIMIT * 10))
+            .setTextGetter(value -> Component.literal(value == 0 ? "Off" : String.format("%.1f m", value / 10f)))
+            .setTooltip(tip(
+                "How near to you anything may come out",
+                "of the SteamVR screen. A block right in",
+                "front of you gets gentler 3D instead of",
+                "popping out too close to focus on.",
+                "Off: full 3D always."))
+            .setSaveConsumer(value -> StereoConfig.setNearLimit(value / 10f))
+            .build());
+
         depth.addEntry(entries.startBooleanToggle(Component.literal("Swap eyes"), StereoConfig.swapEyes())
             .setDefaultValue(false)
             .setTooltip(tip("Only if near things look far and far things near."))

@@ -45,6 +45,8 @@ public final class VrScreen {
     private static final long HEADSET_SETTLE_NANOS = 1_000_000_000L;
     /** Headset pixels per unit of tan(angle), for the automatic eye resolution (0 = unknown). */
     private static float pixelsPerTangent;
+    /** The wearer's eye spacing from SteamVR, in metres (0 = unknown); read with every headset check. */
+    private static volatile float viewerIpd;
     /** Headset refresh rate (0 = unknown) and the frame pacing state (see {@link #pace}). */
     private static float displayHz;
     private static long frameStartNanos;
@@ -92,6 +94,15 @@ public final class VrScreen {
      */
     public static boolean active() {
         return started && headsetPresent;
+    }
+
+    /**
+     * The eye spacing of whoever wears the headset, in metres (the average if SteamVR doesn't say). Depth strength
+     * 100% uses it, so the screen's 3D matches your own eyes.
+     */
+    public static float viewerIpd() {
+        float ipd = viewerIpd;
+        return ipd > 0f ? ipd : StereoConfig.AVERAGE_IPD;
     }
 
     /**
@@ -203,6 +214,10 @@ public final class VrScreen {
         }
         headsetCheckNanos = now;
         boolean inUse = OpenVrApi.headsetInUse(StereoConfig.headsetOffTo2D());
+        if (inUse) {
+            // The headset's IPD dial can turn while it is worn.
+            viewerIpd = OpenVrApi.userIpd();
+        }
         if (inUse == headsetPresent) {
             headsetChangeSinceNanos = 0L;
             headsetSeen = true;
@@ -229,7 +244,8 @@ public final class VrScreen {
             anchored = false;
             OpenVrApi.showOverlay(overlay);
             System.out.println("[Blockoscope SteamVR] Headset in use: SteamVR screen shown (" + Math.round(pixelsPerTangent)
-                + " headset pixels per tangent; eyes render " + eyeResolution() + " wide; headset " + Math.round(displayHz) + " Hz)");
+                + " headset pixels per tangent; eyes render " + eyeResolution() + " wide; headset " + Math.round(displayHz) + " Hz; IPD "
+                + (viewerIpd > 0f ? String.format("%.1f mm", viewerIpd * 1000f) : "unknown") + ")");
         } else {
             OpenVrApi.hideOverlay(overlay);
             System.out.println("[Blockoscope SteamVR] No headset in use: SteamVR screen hidden, normal window");

@@ -48,6 +48,7 @@ public final class StereoConfig {
     public static final float DEFAULT_SCREEN_DISTANCE = 2.8f;
     public static final int DEFAULT_SCREEN_CURVATURE = 10;
     public static final float DEFAULT_FOCUS_DISTANCE = 4f;
+    public static final float DEFAULT_NEAR_LIMIT = 1f;
     public static final int DEFAULT_HAND_DEPTH = 50;
     public static final int DEFAULT_HAND_REACH = 0;
     public static final float DEFAULT_HUD_DISTANCE = 1.2f;
@@ -70,6 +71,7 @@ public final class StereoConfig {
         "renderScale: in the window (no SteamVR screen), % of the half-window resolution each eye renders at (lower = faster)",
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
+        "nearLimit: on the SteamVR screen, the nearest anything comes out towards you, in metres; blocks right in front of you get gentler 3D instead; 0 = off",
         "handReach: centimetres the hand and held item are pushed forward in 3D, as if the arm were longer",
         "handRaise: centimetres the hand and held item are raised in 3D (more of them in view)",
         "handInward: centimetres the hand and held item are moved towards the middle in 3D",
@@ -101,6 +103,7 @@ public final class StereoConfig {
     private static int renderScale = 100;
     private static int depthPercent = 100;
     private static float focusDistance = DEFAULT_FOCUS_DISTANCE;
+    private static float nearLimit = DEFAULT_NEAR_LIMIT;
     private static int handDepthPercent = DEFAULT_HAND_DEPTH;
     private static int handReach = DEFAULT_HAND_REACH;
     private static int handRaise = 0;
@@ -158,6 +161,7 @@ public final class StereoConfig {
     public static int renderScale() { return renderScale; }
     public static int depthPercent() { return depthPercent; }
     public static float focusDistance() { return focusDistance; }
+    public static float nearLimit() { return nearLimit; }
     public static int handDepthPercent() { return handDepthPercent; }
     public static int handReach() { return handReach; }
     public static int handRaise() { return handRaise; }
@@ -190,6 +194,7 @@ public final class StereoConfig {
     public static void setRenderScale(int value) { renderScale = Math.max(25, Math.min(200, value)); }
     public static void setDepthPercent(int value) { depthPercent = Math.max(0, Math.min(300, value)); }
     public static void setFocusDistance(float value) { focusDistance = Math.max(0f, value); }
+    public static void setNearLimit(float value) { nearLimit = Math.max(0f, Math.min(3f, value)); }
     public static void setHandDepthPercent(int value) { handDepthPercent = Math.max(0, Math.min(200, value)); }
     public static void setHandReach(int value) { handReach = Math.max(0, Math.min(60, value)); }
     public static void setHandRaise(int value) { handRaise = Math.max(0, Math.min(40, value)); }
@@ -236,11 +241,6 @@ public final class StereoConfig {
         previewScreenCurvature = null;
     }
 
-    /** Distance between the two eye cameras, in metres. */
-    public static float ipd() {
-        return AVERAGE_IPD * depthPercent / 100f;
-    }
-
     public static void load() {
         Properties props = new Properties();
         Path source = Files.isRegularFile(FILE) ? FILE
@@ -258,6 +258,7 @@ public final class StereoConfig {
         setRenderScale((int) Math.round(parseDouble(props.getProperty("renderScale"), 100)));
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
         setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), DEFAULT_FOCUS_DISTANCE));
+        setNearLimit((float) parseDouble(props.getProperty("nearLimit"), DEFAULT_NEAR_LIMIT));
         setHandDepthPercent((int) Math.round(parseDouble(props.getProperty("handDepthPercent"), DEFAULT_HAND_DEPTH)));
         setHandReach((int) Math.round(parseDouble(props.getProperty("handReach"), DEFAULT_HAND_REACH)));
         setHandRaise((int) Math.round(parseDouble(props.getProperty("handRaise"), 0)));
@@ -297,6 +298,7 @@ public final class StereoConfig {
         out.setProperty("renderScale", String.valueOf(renderScale));
         out.setProperty("depthPercent", String.valueOf(depthPercent));
         out.setProperty("focusDistance", String.valueOf(focusDistance));
+        out.setProperty("nearLimit", String.valueOf(nearLimit));
         out.setProperty("handDepthPercent", String.valueOf(handDepthPercent));
         out.setProperty("handReach", String.valueOf(handReach));
         out.setProperty("handRaise", String.valueOf(handRaise));

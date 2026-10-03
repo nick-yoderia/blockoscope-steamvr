@@ -34,8 +34,11 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - **Live screen adjustment:** while the settings are open, the screen moves and reshapes as you drag its size,
   distance, height and curve sliders; Cancel undoes it.
 - **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
-- **Depth controls:** depth strength (eye spacing, 100% = natural) and focus distance, the distance that sits exactly
-  on the screen surface. Nearer things pop out of the screen, farther things sit behind it.
+- **Depth controls:** depth strength (eye spacing, 100% = your own eyes, as the headset reports them) and focus
+  distance, the distance that sits exactly on the screen surface. Nearer things pop out of the screen, farther things
+  sit behind it.
+- **Comfortable up close:** a block right in front of you never pops out nearer than 1 m (Nearest pop-out); the 3D
+  gets gentler instead while you stand at a wall, and your hand stays in front of what it covers.
 - **HUD and menus in depth:** the HUD sits on whatever is behind the hotbar, menus on the screen surface, and the
   crosshair at the depth of what you aim at, so it never looks doubled. A cursor is drawn in both eyes in menus.
 - **Hand depth, comfort options** (camera bobbing and damage tilt off in 3D, toned-down nausea and portal warp), and
