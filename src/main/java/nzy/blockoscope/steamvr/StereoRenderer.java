@@ -290,6 +290,11 @@ public final class StereoRenderer {
         CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
         encoder.clearColorTexture(packed.getColorTexture(), BLACK);
         int leftHalf = StereoConfig.swapEyes() ? RIGHT : LEFT;
+        // Edge correction only while the GUI is drawn separately afterwards: a menu drawn into the eye targets (blur,
+        // panorama) would be bent with the world, and clicks would land beside its buttons.
+        boolean edgeCorrection = guiOverWindow && renderLevel && projection != null && StereoConfig.edgeCorrection() > 0;
+        EyeBlit.setEdgeCorrection(edgeCorrection ? StereoConfig.edgeCorrection() / 100f : 0f,
+            edgeCorrection ? 1f / projection.m00() : 0f, edgeCorrection ? 1f / projection.m11() : 0f);
         EyeBlit.draw(encoder, targets[leftHalf], packed, 0);
         EyeBlit.draw(encoder, targets[1 - leftHalf], packed, 1);
         if (guiOverWindow) {

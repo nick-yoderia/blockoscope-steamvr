@@ -35,6 +35,16 @@ life-size modes use the screen distance as focus distance (`StereoRenderer.focus
 the user saw HUD and held item "distorted towards the edge" with FOV 90 on the default 2.6 m screen at 2 m: the game
 renders ~120 degrees across into 66 degrees of view, stretching the edges. Hand depth default lowered to 50% at the
 same time (the held tool at the screen's edge stuck far out in front of the frame).
+The user tried `match_fov` in the headset and disliked it (with the 21:9 window, 2.6 m at 2 m is ~30 degrees
+vertical): they want a wide, unrealistic FOV without the stretched edges. Hence edge correction (`edgeCorrection`,
+0.2.1): `EyeBlit` blits each eye through `eye_panini.fsh`, a Panini projection with distance d = setting/100, using
+the eye projection's own tangents (1/m00, 1/m11, so sprinting is followed) from a 16-byte UBO (`MappableRingBuffer`,
+rotated per frame). The full width stays; corners map to corners, the top/bottom middle is cropped a little. Only when
+the GUI is drawn over the packed target (`guiOverWindow`): a menu inside the eye targets would be bent and clicks
+would miss. Opening such a menu therefore switches the world behind it back to rectilinear. Verified in the window
+(SBS) at 100%: no black areas, hand and edges pulled in, near horizontal edges bow visibly on 21:9; user set to 60%.
+Blockoscope SBS renders exactly the same way; it only looked better because Bigscreen's screen covered more of
+the view.
 
 Connecting (`VrScreen.connect`, daemon thread, every 5 s while not connected): only when `vrserver.exe` is running
 (`ProcessHandle`), so the mod never launches SteamVR (initialising an overlay app would), and quitting SteamVR
@@ -226,6 +236,8 @@ screen at 1920 per eye (3840x1080 texture) and the null-driver compositor runnin
 
 ## Open items
 
+- Headset check of edge correction (60%) and whether the HUD scene depth (rays through the rectilinear
+  picture) still matches what is behind the bent hotbar area.
 - Headset check of the SteamVR screen in the Steam Frame: placement and F8, sharpness, comfort of the default size
   (2.6 m at 2 m). Orientation and eye order are verified in the null headset's compositor.
 - D3D11 device on the default adapter: on a multi-GPU PC where the game runs on another GPU, the interop fails and

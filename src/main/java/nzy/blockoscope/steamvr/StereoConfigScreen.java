@@ -104,6 +104,14 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setScreenSize)
             .build());
 
+        screen.addEntry(entries.startIntSlider(Component.literal("Edge correction"), StereoConfig.edgeCorrection(), 0, 100)
+            .setDefaultValue(0)
+            .setTextGetter(value -> Component.literal(value == 0 ? "Off" : value + "%"))
+            .setTooltip(Component.literal("Keeps a wide FOV without stretched edges."),
+                Component.literal("Crops a little at the top and bottom."))
+            .setSaveConsumer(StereoConfig::setEdgeCorrection)
+            .build());
+
         screen.addEntry(entries.startIntSlider(Component.literal("Screen width"),
                 Math.round(StereoConfig.screenWidth() * 10), 5, 200)
             .setDefaultValue(26)
