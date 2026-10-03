@@ -179,33 +179,6 @@ public final class StereoRenderer {
         return (float) (2.0 * StereoConfig.screenDistance() * halfWidthRatio);
     }
 
-    /**
-     * Floating window: how many pixels to blank at the left edge of the left eye and the right edge of the right eye.
-     *
-     * The held item sits in front of the screen. Where the screen's frame cuts through it (bottom right), each eye
-     * sees a different amount of it, and the frame, at screen depth, hides something that is nearer than itself: the
-     * brain can't fuse that, and the item looked pulled and distorted towards the edge (a "window violation"; the
-     * user's "disconnect" at the screen edges). Blanking a strip on those sides gives the frame the same disparity as
-     * a point in front of the screen, so the edges appear to float at the held item's depth and nothing near them
-     * pokes through. Sized for the held item: vanilla holds it about 0.72 m ahead (plus hand reach), drawn with the
-     * hand's fixed 70 degree FOV, at the hand depth setting. The HUD is drawn afterwards and keeps its own edge
-     * handling (edgeShiftPixels).
-     */
-    private static int floatingWindowPixels(int windowWidth, int windowHeight) {
-        if (!StereoConfig.floatingWindow() || windowWidth <= 0 || windowHeight <= 0) {
-            return 0;
-        }
-        float focus = focusDistance();
-        float inverseFocus = focus > 0f ? 1f / focus : 0f;
-        float handDistance = 0.72f + StereoConfig.handReach() / 100f;
-        float halfIpd = StereoConfig.ipd() / 2f * StereoConfig.handDepthPercent() / 100f;
-        double handM00 = 1.0 / ((double) windowWidth / windowHeight * Math.tan(Math.toRadians(35.0)));
-        // Disparity between the eyes in NDC (2 per eye width), in pixels of the packed half.
-        double ndc = 2.0 * handM00 * halfIpd * (1.0 / handDistance - inverseFocus);
-        int halfWidth = packedWidth / 2;
-        return (int) Math.max(0, Math.min(halfWidth / 10, Math.round(ndc * halfWidth / 2.0)));
-    }
-
     /** Replaces GameRenderer.render(deltaTracker, renderLevel) in Minecraft.renderFrame. */
     public static void render(GameRenderer gameRenderer, DeltaTracker deltaTracker, boolean renderLevel) {
         CursorControl.update();
@@ -317,11 +290,8 @@ public final class StereoRenderer {
         CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
         encoder.clearColorTexture(packed.getColorTexture(), BLACK);
         int leftHalf = StereoConfig.swapEyes() ? RIGHT : LEFT;
-        // Not under a menu drawn into the eyes (blur): it sits on the screen surface and would lose its outer edge in
-        // one eye (the Options screen's 3D button was cut off in the left eye).
-        int mask = renderLevel && guiOverWindow ? floatingWindowPixels(width, height) : 0;
-        EyeBlit.draw(encoder, targets[leftHalf], packed, 0, leftHalf == LEFT ? mask : 0, leftHalf == LEFT ? 0 : mask);
-        EyeBlit.draw(encoder, targets[1 - leftHalf], packed, 1, leftHalf == LEFT ? 0 : mask, leftHalf == LEFT ? mask : 0);
+        EyeBlit.draw(encoder, targets[leftHalf], packed, 0);
+        EyeBlit.draw(encoder, targets[1 - leftHalf], packed, 1);
         if (guiOverWindow) {
             drawGuiOverWindow(access, packed, encoder);
         }

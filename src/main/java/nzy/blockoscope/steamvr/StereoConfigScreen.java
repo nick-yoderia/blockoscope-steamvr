@@ -3,7 +3,6 @@ package nzy.blockoscope.steamvr;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
-import me.shedaniel.clothconfig2.gui.entries.BooleanListEntry;
 import me.shedaniel.clothconfig2.gui.entries.EnumListEntry;
 import me.shedaniel.clothconfig2.gui.entries.IntegerSliderEntry;
 import net.minecraft.client.Minecraft;
@@ -25,7 +24,7 @@ public final class StereoConfigScreen {
 
     /**
      * Called every frame: while this settings screen is open, the SteamVR screen follows its size, distance, height,
-     * curve and edge entries as they are dragged, unsaved. Once it closes (saved or not), the saved values apply again.
+     * and curve entries as they are dragged, unsaved. Once it closes (saved or not), the saved values apply again.
      */
     public static void updatePreview() {
         if (previewScreen == null) {
@@ -148,15 +147,6 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setScreenSize)
             .build();
         screen.addEntry(sizeEntry);
-
-        BooleanListEntry floatingEntry = entries.startBooleanToggle(Component.literal("Floating edges"), StereoConfig.floatingWindow())
-            .setDefaultValue(true)
-            .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off"))
-            .setTooltip(Component.literal("Screen edges float at your held item's depth,"),
-                Component.literal("so it isn't cut off by an edge behind it."))
-            .setSaveConsumer(StereoConfig::setFloatingWindow)
-            .build();
-        screen.addEntry(floatingEntry);
 
         IntegerSliderEntry widthEntry = entries.startIntSlider(Component.literal("Screen width"),
                 Math.round(StereoConfig.screenWidth() * 10), 5, 200)
@@ -319,7 +309,7 @@ public final class StereoConfigScreen {
         Screen built = builder.build();
         previewScreen = built;
         previewSource = () -> StereoConfig.preview(sizeEntry.getValue(), widthEntry.getValue() / 10f,
-            distanceEntry.getValue() / 10f, heightEntry.getValue() / 10f, curveEntry.getValue(), floatingEntry.getValue());
+            distanceEntry.getValue() / 10f, heightEntry.getValue() / 10f, curveEntry.getValue());
         return built;
     }
 }

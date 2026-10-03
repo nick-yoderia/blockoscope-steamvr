@@ -35,8 +35,6 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
   screen; On also shows half side-by-side 3D in the window without SteamVR. The mod never starts SteamVR itself.
 - **Live screen adjustment:** while the settings are open, the screen moves and reshapes as you drag its size,
   distance, height and curve sliders; Cancel undoes it.
-- **Floating edges:** the screen's edges appear at the depth of your held item, so an edge never cuts through
-  something that sits in front of it.
 - **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
 - Everything from Blockoscope SBS: depth strength and focus distance, a HUD that sits on whatever is behind the hotbar,
   menus on the screen surface, a crosshair at the depth of what you aim at, hand depth, comfort options, F9 for 2D.
@@ -78,7 +76,6 @@ copied from Blockoscope SBS / Parallax Theater, if present):
 | `syncToHeadset` | `true` | One game frame per headset refresh while the SteamVR screen is on |
 | `headsetOffTo2D` | `true` | Back to normal 2D while the headset is off your head (proximity sensor), like Vivecraft's hot switching; `false` = only when it is disconnected or asleep |
 | `screenSize` | `custom` | `custom`; `true_scale` (the screen grows to the game's FOV) or `match_fov` (the game's FOV follows the screen): both life-size, focused at the screen |
-| `floatingWindow` | `true` | Blank a thin strip at each eye's outer edge so the screen edges float at the held item's depth |
 | `screenWidth` | `2.6` | Screen width in metres (`custom` and `match_fov`) |
 | `screenDistance` | `2.0` | Metres from your head to the screen, applied when it is placed or recentered (F8) |
 | `screenHeight` | `0` | Metres above (or below) your eyes |

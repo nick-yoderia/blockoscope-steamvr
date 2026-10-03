@@ -49,12 +49,8 @@ public final class EyeBlit {
         }
     }
 
-    /**
-     * Draws {@code eye} into half {@code half} (0 = left, 1 = right) of {@code target}, leaving {@code blankLeft} and
-     * {@code blankRight} pixels at its sides as they are (black; the floating window). Draw the left half first.
-     */
-    public static void draw(CommandEncoder encoder, RenderTarget eye, RenderTarget target, int half, int blankLeft,
-                            int blankRight) {
+    /** Draws {@code eye} into half {@code half} (0 = left, 1 = right) of {@code target}. Draw the left half first. */
+    public static void draw(CommandEncoder encoder, RenderTarget eye, RenderTarget target, int half) {
         int halfWidth = target.width / 2;
         RenderPassDescriptor descriptor = RenderPassDescriptor.create(() -> "Blockoscope SteamVR eye blit")
             .withColorAttachment(target.getColorTextureView())
@@ -64,7 +60,7 @@ public final class EyeBlit {
             RenderSystem.bindDefaultUniforms(pass);
             pass.bindTexture("InSampler", eye.getColorTextureView(),
                 RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
-            pass.enableScissor(half * halfWidth + blankLeft, 0, Math.max(1, halfWidth - blankLeft - blankRight), target.height);
+            pass.enableScissor(half * halfWidth, 0, halfWidth, target.height);
             pass.draw(3, 1, 0, 0);
         }
     }

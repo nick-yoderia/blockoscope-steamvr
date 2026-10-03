@@ -40,11 +40,9 @@ vertical): they want a wide, unrealistic FOV without the stretched edges. Edge c
 tried in 0.2.1 development) did nothing visible for the user in the headset and was removed. Blockoscope SBS renders
 exactly the same way; it only looked better in Bigscreen because that screen covered more of the view.
 
-Floating window (`floatingWindow`, 0.2.1, `StereoRenderer.floatingWindowPixels`, scissor in `EyeBlit.draw`): the
-"disconnect" at the screen edges is most likely a window violation: the held item sits in front of the screen and
-the frame (at screen depth) cuts it differently in each eye. The left eye's left strip and the right eye's right strip
-stay black, sized to the held item's disparity (0.72 m + hand reach, hand FOV 70, hand depth): the frame edges then
-float at the item's depth. 28 px per eye at 2580 px, hand depth 50%, focus 4 m. The HUD is drawn afterwards, unmasked.
+Floating window (0.2.1, removed in 0.3.0): a black strip at the outer edge of each eye, sized to the held item's
+disparity, so the frame edges would float at the item's depth (window violation theory for the edge "disconnect").
+In the headset the user just saw black bars at the sides and preferred it off; removed.
 
 Eye resolution (0.2.1, `VrScreen.eyeHeight`): Auto renders 1.5x the headset's pixel density at the screen, rounded to
 a whole number of eye pixels per GUI pixel (eye height = n x window height / GUI scale). 0.2.0's 1:1 auto gave
@@ -115,8 +113,7 @@ Minecraft for them; `on` = always (window SBS without SteamVR); `off`. `VrScreen
 mode is `off`. F9: `enabled() ? off : on`. `OptionsScreenMixin` adds a "3D: Auto/On/Off" cycle button at (5, 5) in the
 Options screen (like Vivecraft's VR switch; the user asked for a toggle there, default off; auto was proposed as
 better). Verified: auto starts in 2D and turns 3D when the screen connects; the button cycles and saves; off stops
-the screen. The floating window strip is skipped under menus drawn into the eyes (it cut the button off in the left
-eye).
+the screen. 
 
 Headset in use (0.3.0, `VrScreen.updateHeadset`, `OpenVrApi.headsetInUse`): being connected to SteamVR is not enough
 (the user: many people run SteamVR without connecting the headset and want to play flat). `active()` = connected
@@ -126,7 +123,7 @@ UserInteraction or UserInteraction_Timeout, exactly Vivecraft's `MCOpenVR.isActi
 Standby. Checked every 0.5 s, a change counts after 1 s; the overlay is hidden (`HideOverlay`, slot 42) or shown
 and re-centred. Slots verified against LWJGL 3.3.6's `OpenVR$IVRSystem`/`$IVROverlay` constructors. The null
 driver's headset counts as worn; when its SteamVR quits, the headset goes before the quit event and the game logged
-"No headset in use" and went 2D. Taking a real headset off is not tested yet.
+"No headset in use" and went 2D. Confirmed by the user in the Steam Frame over Steam Link (proximity sensor works there).
 
 ## OpenVR binding (`OpenVrApi`)
 
@@ -269,7 +266,6 @@ screen at 1920 per eye (3840x1080 texture) and the null-driver compositor runnin
 
 ## Open items
 
-- Headset check of the floating window and the 1.5x auto resolution.
 - Headset check of the SteamVR screen in the Steam Frame: placement and F8, sharpness, comfort of the default size
   (2.6 m at 2 m). Orientation and eye order are verified in the null headset's compositor.
 - D3D11 device on the default adapter: on a multi-GPU PC where the game runs on another GPU, the interop fails and

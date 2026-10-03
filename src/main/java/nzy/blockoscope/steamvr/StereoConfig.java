@@ -76,7 +76,6 @@ public final class StereoConfig {
         "syncToHeadset: one game frame per headset refresh while the SteamVR screen is on (smooth motion; runs free when the game can't keep up)",
         "headsetOffTo2D: back to normal 2D on the monitor while the headset is off your head (its proximity sensor), 3D again when you put it on; false = only when it is disconnected or asleep",
         "screenSize: custom (screenWidth, the game's FOV), true_scale (the screen grows to the game's FOV) or match_fov (the game's FOV shrinks to the screen); both life-size modes focus at the screen and ignore focusDistance",
-        "floatingWindow: blank a thin strip at the outer edge of each eye so the screen's edges float in front, at the held item's depth (no item cut off by an edge behind it)",
         "screenWidth: width of the SteamVR screen in metres",
         "screenDistance: metres from your head (where it was at the last recenter, F8) to the SteamVR screen",
         "screenHeight: metres the SteamVR screen sits above (or below) your eyes",
@@ -104,7 +103,6 @@ public final class StereoConfig {
     private static int eyeResolution = 0;
     private static boolean syncToHeadset = true;
     private static ScreenSize screenSize = ScreenSize.CUSTOM;
-    private static boolean floatingWindow = true;
     private static boolean headsetOffTo2D = true;
     private static float screenWidth = 2.6f;
     private static float screenDistance = 2.0f;
@@ -128,7 +126,6 @@ public final class StereoConfig {
     private static Float previewScreenDistance;
     private static Float previewScreenHeight;
     private static Integer previewScreenCurvature;
-    private static Boolean previewFloatingWindow;
 
     static {
         load();
@@ -165,7 +162,6 @@ public final class StereoConfig {
     /** True in either life-size mode: the screen covers exactly the game's field of view and is the focus distance. */
     public static boolean lifeSize() { return screenSize() != ScreenSize.CUSTOM; }
     public static boolean headsetOffTo2D() { return headsetOffTo2D; }
-    public static boolean floatingWindow() { return previewFloatingWindow != null ? previewFloatingWindow : floatingWindow; }
     public static float screenWidth() { return previewScreenWidth != null ? previewScreenWidth : screenWidth; }
     public static float screenDistance() { return previewScreenDistance != null ? previewScreenDistance : screenDistance; }
     public static float screenHeight() { return previewScreenHeight != null ? previewScreenHeight : screenHeight; }
@@ -197,7 +193,6 @@ public final class StereoConfig {
     public static void setSyncToHeadset(boolean value) { syncToHeadset = value; }
     public static void setEyeResolution(int value) { eyeResolution = value <= 0 ? 0 : Math.max(640, Math.min(4096, value)); }
     public static void setScreenSize(ScreenSize value) { screenSize = value == null ? ScreenSize.CUSTOM : value; }
-    public static void setFloatingWindow(boolean value) { floatingWindow = value; }
     public static void setHeadsetOffTo2D(boolean value) { headsetOffTo2D = value; }
     public static void setScreenWidth(float value) { screenWidth = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenDistance(float value) { screenDistance = Math.max(0.5f, Math.min(20f, value)); }
@@ -212,13 +207,12 @@ public final class StereoConfig {
     public static void setConfineCursor(boolean value) { confineCursor = value; }
 
     /** Shows these screen settings live instead of the saved ones (clamped like the saved ones). */
-    public static void preview(ScreenSize size, float width, float distance, float height, int curvature, boolean floating) {
+    public static void preview(ScreenSize size, float width, float distance, float height, int curvature) {
         previewScreenSize = size == null ? ScreenSize.CUSTOM : size;
         previewScreenWidth = Math.max(0.5f, Math.min(20f, width));
         previewScreenDistance = Math.max(0.5f, Math.min(20f, distance));
         previewScreenHeight = Math.max(-3f, Math.min(3f, height));
         previewScreenCurvature = Math.max(0, Math.min(100, curvature));
-        previewFloatingWindow = floating;
     }
 
     /** Back to the saved screen settings. */
@@ -228,7 +222,6 @@ public final class StereoConfig {
         previewScreenDistance = null;
         previewScreenHeight = null;
         previewScreenCurvature = null;
-        previewFloatingWindow = null;
     }
 
     /** Distance between the two eye cameras, in metres. */
@@ -271,7 +264,6 @@ public final class StereoConfig {
         ScreenSize oldSize = parseBoolean(props.getProperty("trueScale"), false) ? ScreenSize.TRUE_SCALE : ScreenSize.CUSTOM;
         screenSize = parseEnum(ScreenSize.class, props.getProperty("screenSize"), oldSize);
         syncToHeadset = parseBoolean(props.getProperty("syncToHeadset"), true);
-        floatingWindow = parseBoolean(props.getProperty("floatingWindow"), true);
         headsetOffTo2D = parseBoolean(props.getProperty("headsetOffTo2D"), true);
         setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), 2.6));
         setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), 2.0));
@@ -307,7 +299,6 @@ public final class StereoConfig {
         out.setProperty("eyeResolution", String.valueOf(eyeResolution));
         out.setProperty("screenSize", screenSize.name().toLowerCase(java.util.Locale.ROOT));
         out.setProperty("syncToHeadset", String.valueOf(syncToHeadset));
-        out.setProperty("floatingWindow", String.valueOf(floatingWindow));
         out.setProperty("headsetOffTo2D", String.valueOf(headsetOffTo2D));
         out.setProperty("screenWidth", String.valueOf(screenWidth));
         out.setProperty("screenDistance", String.valueOf(screenDistance));
