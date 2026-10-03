@@ -46,6 +46,19 @@ our own GPU work, and SteamVR's D3D11 overlay path is the one most overlay apps 
 step fails, the GL id is submitted as before and the log says why. COM calls go through vtable slots
 (`ID3D11Device::CreateTexture2D` 5, `IUnknown::Release` 2).
 
+Frame pacing (`VrScreen.pace`, `syncToHeadset`, default on): after each submit, `IVROverlay::WaitFrameSync` (slot
+45, timeout one refresh + 5 ms) blocks until the compositor's next frame, so the game makes one frame per headset
+refresh instead of beating against it (uneven motion) and leaves GPU time to the compositor. It is skipped while the
+averaged frame work (time from the end of one wait to the next submit, EMA 0.1) exceeds 85% of a refresh at the
+headset's `Prop_DisplayFrequency_Float` (2002, via `GetFloatTrackedDeviceProperty`, IVRSystem slot 22), so a slow
+game runs free rather than halving like VSync; three timeouts in a row pause it for 3 s. Measured with the null
+driver: its compositor draws at the *monitor's* rate (144 Hz here, although the null HMD reports 90 Hz), and the game
+locked to it: ~137-140 FPS, 5 ms work + 1.9 ms wait per frame (debug log line `pace:` every 500 frames). While the
+screen is up `FramerateLimitTrackerMixin` returns no throttle reason (vanilla drops to 30 FPS after 60 s without
+input, 10 after 10 min or when minimised; someone watching in the headset gives no input), verified at 140 FPS after
+80 s idle, and `MinecraftMixin` passes vsync=false to `PresentMode.getSupportedVsyncMode` and reconfigures the window
+surface when the screen comes or goes (the monitor's VSync would pace the game to the monitor).
+
 Texture bounds: the GL id needs plain 0..1 (SteamVR accounts for GL's bottom-up rows itself, as for Vivecraft's
 eye textures); the D3D11 copy arrives upside down (GL row 0 is the bottom one), so `D3dShare.FLIPPED` flips the
 bounds; `flipScreen` flips once more. Both verified upright in the null headset's compositor window.
