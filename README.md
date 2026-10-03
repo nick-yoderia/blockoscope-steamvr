@@ -54,9 +54,20 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - Recommended: [Mod Menu](https://modrinth.com/mod/modmenu) and [Cloth Config](https://modrinth.com/mod/cloth-config)
 - Not compatible with Vivecraft, and don't install it together with Blockoscope SBS (they replace the same rendering)
 
+## Modpack
+
+[**Download the Blockoscope SteamVR modpack**](https://github.com/nick-yoderia/blockoscope-steamvr/raw/main/modpack/Blockoscope-SteamVR.mrpack) (always the
+latest; `.mrpack`). It is the setup the mod is tested with: Blockoscope SteamVR with Sodium, Sodium Extra, Iris (BSL selected;
+Complementary Reimagined and Photon included), Voxy with Voxy World Gen, Lithium, FerriteCore, MoreCulling,
+BadOptimizations, Clumps, Chunky, Mod Menu and Cloth Config.
+
+In Prism Launcher: **Add Instance > Import**, then pick the downloaded file or paste the link above. (The Modrinth
+App opens it too.) The pack only lists the other mods and shader packs, which the launcher downloads from Modrinth.
+Give the instance at least 8 GB of memory (**Edit > Settings > Java**) for Voxy and shaders.
+
 ## Setup
 
-1. Put `blockoscope-steamvr-<version>.jar` in your `mods` folder.
+1. Put `blockoscope-steamvr-<version>.jar` in your `mods` folder, or import the [modpack](#modpack).
 2. Start SteamVR with your headset, then Minecraft (any order; the screen appears within a few seconds of both
    running). Keep the game window focused for keyboard and mouse.
 3. Press **F8** to bring the screen in front of you. Adjust it under **Mods > Blockoscope SteamVR > Screen** (it moves live while you drag).
@@ -128,6 +139,10 @@ instances, adjust as needed:
 ```sh
 bash build.sh   # -> build/blockoscope-steamvr-<version>.jar
 ```
+
+The modpack is rebuilt from a Prism instance with `modpack/make-pack.py` (see the top of the script). It looks every
+third-party file up on Modrinth instead of bundling it, and bundles only this mod's jar and an allowlist of config
+files, checked for personal information.
 
 ## Tested with
 

@@ -39,6 +39,14 @@ Optional-mod classes are only referenced from mixins in `nzy.blockoscope.steamvr
 `CompatMixinPlugin` applies only when that mod is loaded. SteamVR is called through Java's foreign function API
 on the bundled `openvr_api.dll` (`OpenVrApi`), and the screen goes over as a D3D11 texture (`D3dShare`); see DEV_NOTES.
 
+## Modpack
+
+`modpack/Blockoscope-SteamVR.mrpack` is linked from the README as the rolling download (raw link on `main`); rebuild
+it after every release and commit it:
+`python modpack/make-pack.py --instance "$APPDATA/PrismLauncher/instances/26.2-Blockoscope-SteamVR-Dev" --jar build/blockoscope-steamvr-<version>.jar
+--name "Blockoscope SteamVR" --summary "..." --out modpack/Blockoscope-SteamVR.mrpack`. Never bundle third-party files
+or anything outside the script's config allowlist (worlds, options.txt, logs, sodium-fingerprint.json hold personal data).
+
 ## Test loop
 
 - Test instance: see DEV_NOTES "Testing". The user's real instance **26.2** runs Vivecraft + NullVR Theater; never
