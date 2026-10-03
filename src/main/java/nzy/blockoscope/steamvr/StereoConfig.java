@@ -56,7 +56,7 @@ public final class StereoConfig {
         "syncToHeadset: one game frame per headset refresh while the SteamVR screen is on (smooth motion; runs free when the game can't keep up)",
         "trueScale: size the SteamVR screen to the game's field of view and focus at the screen, so the world is life-size (ignores screenWidth and focusDistance)",
         "screenWidth: width of the SteamVR screen in metres",
-        "screenDistance: metres from your head to the SteamVR screen (when it is placed or recentered, F8)",
+        "screenDistance: metres from your head (where it was at the last recenter, F8) to the SteamVR screen",
         "screenHeight: metres the SteamVR screen sits above (or below) your eyes",
         "screenCurvature: curve of the SteamVR screen in % (0 = flat)",
         "flipScreen: debug; flips the picture on the SteamVR screen upside down",

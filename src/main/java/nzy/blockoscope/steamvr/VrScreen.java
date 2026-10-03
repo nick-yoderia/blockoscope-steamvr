@@ -43,6 +43,19 @@ public final class VrScreen {
     /** Tracking space the screen was placed in (seated, or standing when there is no seated origin). */
     private static int universe = OpenVrApi.UNIVERSE_SEATED;
     private static boolean recenterRequested;
+    /**
+     * Where the screen was last centred from: the headset's position and level heading when it was placed in front of
+     * you (first placement, F8). Distance and height changes move the screen from here, not from wherever you happen
+     * to be looking at that moment.
+     */
+    private static boolean anchored;
+    private static float anchorX;
+    private static float anchorY;
+    private static float anchorZ;
+    private static float anchorForwardX;
+    private static float anchorForwardZ;
+    private static float appliedDistance = Float.NaN;
+    private static float appliedHeight = Float.NaN;
     private static volatile String lastError = "";
     private static boolean warnedNotOpenGl;
     private static boolean warnedNoDirect3d;
@@ -85,9 +98,10 @@ public final class VrScreen {
         return Math.max(640, Math.min(4096, Math.round(pixels / 16f) * 16));
     }
 
-    /** Asks for the screen to be placed in front of the headset again (key or setting change). */
+    /** Asks for the screen to be placed in front of the headset again, along where it now faces (F8). */
     public static void requestRecenter() {
         recenterRequested = true;
+        anchored = false;
     }
 
     /** Called once per frame on the render thread: connects, disconnects and follows SteamVR's events. */
@@ -120,6 +134,10 @@ public final class VrScreen {
                 return;
             }
             applyShape();
+            if (StereoConfig.screenDistance() != appliedDistance || StereoConfig.screenHeight() != appliedHeight) {
+                // Distance or height changed in the settings: move the screen along the same line, keeping its heading.
+                recenterRequested = true;
+            }
             if (!placed || recenterRequested) {
                 placed = place();
                 recenterRequested = false;
@@ -190,6 +208,7 @@ public final class VrScreen {
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> stop("game closed"), "Blockoscope SteamVR shutdown"));
             }
             placed = false;
+            anchored = false;
             lastError = "";
             pixelsPerTangent = OpenVrApi.pixelsPerTangent();
             displayHz = OpenVrApi.displayFrequency();
@@ -219,9 +238,43 @@ public final class VrScreen {
 
     /**
      * Puts the screen straight ahead of the headset at the screen distance, level and facing it (only the headset's
-     * heading counts, so looking down while recentering doesn't tilt the screen).
+     * heading counts, so looking down while recentering doesn't tilt the screen). The headset is only read when
+     * (re)centering; a distance or height change reuses that anchor. It used to read the headset every time, and since
+     * Cloth Config saves every entry (which requested a recenter) when you press Save at the bottom right, the screen
+     * followed your gaze towards the button and drifted to the right with each change.
      */
     private static boolean place() throws Throwable {
+        if (!anchored && !anchor()) {
+            return false;
+        }
+        float distance = StereoConfig.screenDistance();
+        float height = StereoConfig.screenHeight();
+        float x = anchorX + anchorForwardX * distance;
+        float y = anchorY + height;
+        float z = anchorZ + anchorForwardZ * distance;
+        // The overlay faces +Z; turn it about the vertical to face back along the heading.
+        float angle = (float) Math.atan2(-anchorForwardX, -anchorForwardZ);
+        float cos = (float) Math.cos(angle);
+        float sin = (float) Math.sin(angle);
+        float[] matrix = {
+            cos, 0f, sin, x,
+            0f, 1f, 0f, y,
+            -sin, 0f, cos, z};
+        for (int i = 0; i < matrix.length; i++) {
+            TRANSFORM.setAtIndex(JAVA_FLOAT, i, matrix[i]);
+        }
+        int result = OpenVrApi.setOverlayTransformAbsolute(overlay, universe, TRANSFORM);
+        if (result != 0) {
+            logOnce("Could not place the SteamVR screen: " + OpenVrApi.overlayErrorText(result));
+            return false;
+        }
+        appliedDistance = distance;
+        appliedHeight = height;
+        return true;
+    }
+
+    /** Reads the headset's position and level heading as the point the screen is placed from. */
+    private static boolean anchor() throws Throwable {
         // Seated space if SteamVR has a seated origin (then "reset seated position" moves the screen along), standing
         // space otherwise.
         long pose = (long) OpenVrApi.HMD_INDEX * OpenVrApi.POSE_SIZE;
@@ -249,26 +302,13 @@ public final class VrScreen {
             forwardX /= length;
             forwardZ /= length;
         }
-        float distance = StereoConfig.screenDistance();
-        float x = POSES.get(JAVA_FLOAT, pose + 3 * 4) + forwardX * distance;
-        float y = POSES.get(JAVA_FLOAT, pose + 7 * 4) + StereoConfig.screenHeight();
-        float z = POSES.get(JAVA_FLOAT, pose + 11 * 4) + forwardZ * distance;
-        // The overlay faces +Z; turn it about the vertical to face back along the heading.
-        float angle = (float) Math.atan2(-forwardX, -forwardZ);
-        float cos = (float) Math.cos(angle);
-        float sin = (float) Math.sin(angle);
-        float[] matrix = {
-            cos, 0f, sin, x,
-            0f, 1f, 0f, y,
-            -sin, 0f, cos, z};
-        for (int i = 0; i < matrix.length; i++) {
-            TRANSFORM.setAtIndex(JAVA_FLOAT, i, matrix[i]);
-        }
-        int result = OpenVrApi.setOverlayTransformAbsolute(overlay, universe, TRANSFORM);
-        if (result != 0) {
-            logOnce("Could not place the SteamVR screen: " + OpenVrApi.overlayErrorText(result));
-        }
-        return result == 0;
+        anchorX = POSES.get(JAVA_FLOAT, pose + 3 * 4);
+        anchorY = POSES.get(JAVA_FLOAT, pose + 7 * 4);
+        anchorZ = POSES.get(JAVA_FLOAT, pose + 11 * 4);
+        anchorForwardX = forwardX;
+        anchorForwardZ = forwardZ;
+        anchored = true;
+        return true;
     }
 
     /** Hands the packed eyes (left eye in the left half) to SteamVR. */

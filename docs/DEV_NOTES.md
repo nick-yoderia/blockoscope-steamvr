@@ -20,7 +20,11 @@ side-by-side window output.
 at the headset rate, so head motion is smooth regardless of game FPS, and the game doesn't need to track the head.
 Overlay flags `SideBySide_Parallel` (left half to the left eye) and `IgnoreTextureAlpha` (the GUI leaves alpha < 1).
 Placement: `place()` puts it `screenDistance` ahead of the HMD along its heading only (yaw), level, at eye height +
-`screenHeight`; F8 (`ToggleKey`) or changing distance/height re-places it. Tracking space: seated when SteamVR has a
+`screenHeight`. The headset's position and heading are read only when centering (first placement, F8 via
+`ToggleKey`) and kept as an anchor; a distance/height change moves the screen along the anchor's heading. Until
+0.2.0 every settings save re-read the headset: Cloth Config calls every entry's save consumer on Save, the distance
+and height entries requested a recenter, and the user was looking at the Save button (bottom right), so the screen
+drifted right after each settings change (user report in the Steam Frame). Tracking space: seated when SteamVR has a
 seated origin (so "reset seated position" carries the screen along), standing otherwise (the null driver has no seated
 origin: its seated HMD pose is flagged invalid although tracking is "Running_OK"). Width/curve are re-sent when they change;
 true scale computes the width from the game's FOV setting and window aspect (`StereoRenderer.trueScaleScreenWidth`)

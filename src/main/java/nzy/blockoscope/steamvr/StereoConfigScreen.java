@@ -109,11 +109,8 @@ public final class StereoConfigScreen {
                 Math.round(StereoConfig.screenDistance() * 10), 5, 200)
             .setDefaultValue(20)
             .setTextGetter(value -> Component.literal(String.format("%.1f m", value / 10f)))
-            .setTooltip(Component.literal("Applies when the screen is recentered (F8)."))
-            .setSaveConsumer(value -> {
-                StereoConfig.setScreenDistance(value / 10f);
-                VrScreen.requestRecenter();
-            })
+            .setTooltip(Component.literal("From where you sat at the last recenter (F8)."))
+            .setSaveConsumer(value -> StereoConfig.setScreenDistance(value / 10f))
             .build());
 
         screen.addEntry(entries.startIntSlider(Component.literal("Screen height"),
@@ -121,10 +118,7 @@ public final class StereoConfigScreen {
             .setDefaultValue(0)
             .setTextGetter(value -> Component.literal(value == 0 ? "Eye level" : String.format("%+.1f m", value / 10f)))
             .setTooltip(Component.literal("Above or below your eyes."))
-            .setSaveConsumer(value -> {
-                StereoConfig.setScreenHeight(value / 10f);
-                VrScreen.requestRecenter();
-            })
+            .setSaveConsumer(value -> StereoConfig.setScreenHeight(value / 10f))
             .build());
 
         screen.addEntry(entries.startIntSlider(Component.literal("Curve"), StereoConfig.screenCurvature(), 0, 100)
