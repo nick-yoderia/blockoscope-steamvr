@@ -37,6 +37,8 @@ final class OpenVrApi {
     static final int COLOR_SPACE_AUTO = 0;
     static final int OVERLAY_FLAG_SIDE_BY_SIDE_PARALLEL = 1 << 10;
     static final int OVERLAY_FLAG_IGNORE_TEXTURE_ALPHA = 1 << 22;
+    /** Tracking spaces: seated (moved by SteamVR's "reset seated position") and standing (room scale). */
+    static final int UNIVERSE_SEATED = 0;
     static final int UNIVERSE_STANDING = 1;
     static final int EVENT_QUIT = 700;
     static final int MAX_DEVICES = 64;

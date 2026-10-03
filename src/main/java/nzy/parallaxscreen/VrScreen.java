@@ -32,6 +32,8 @@ public final class VrScreen {
     private static volatile boolean connecting;
     private static volatile boolean connected;
     private static boolean placed;
+    /** Tracking space the screen was placed in (seated, or standing when there is no seated origin). */
+    private static int universe = OpenVrApi.UNIVERSE_SEATED;
     private static boolean recenterRequested;
     private static volatile String lastError = "";
     private static boolean warnedNotOpenGl;
@@ -189,10 +191,21 @@ public final class VrScreen {
      * heading counts, so looking down while recentering doesn't tilt the screen).
      */
     private static boolean place() throws Throwable {
-        OpenVrApi.getPoses(OpenVrApi.UNIVERSE_STANDING, POSES, OpenVrApi.MAX_DEVICES);
+        // Seated space if SteamVR has a seated origin (then "reset seated position" moves the screen along), standing
+        // space otherwise.
         long pose = (long) OpenVrApi.HMD_INDEX * OpenVrApi.POSE_SIZE;
+        universe = OpenVrApi.UNIVERSE_SEATED;
+        OpenVrApi.getPoses(universe, POSES, OpenVrApi.MAX_DEVICES);
+        if (POSES.get(JAVA_BYTE, pose + OpenVrApi.POSE_VALID_OFFSET) == 0) {
+            universe = OpenVrApi.UNIVERSE_STANDING;
+            OpenVrApi.getPoses(universe, POSES, OpenVrApi.MAX_DEVICES);
+        }
         if (POSES.get(JAVA_BYTE, pose + OpenVrApi.POSE_VALID_OFFSET) == 0) {
             return false;
+        }
+        if (StereoDebug.ENABLED) {
+            StereoDebug.log("headset at " + POSES.get(JAVA_FLOAT, pose + 3 * 4) + ", " + POSES.get(JAVA_FLOAT, pose + 7 * 4)
+                + ", " + POSES.get(JAVA_FLOAT, pose + 11 * 4) + (universe == OpenVrApi.UNIVERSE_SEATED ? " (seated)" : " (standing)"));
         }
         // HmdMatrix34_t rows are (x, y, z, translation); the headset looks along its -Z axis.
         float forwardX = -POSES.get(JAVA_FLOAT, pose + 2 * 4);
@@ -220,7 +233,7 @@ public final class VrScreen {
         for (int i = 0; i < matrix.length; i++) {
             TRANSFORM.setAtIndex(JAVA_FLOAT, i, matrix[i]);
         }
-        int result = OpenVrApi.setOverlayTransformAbsolute(overlay, OpenVrApi.UNIVERSE_STANDING, TRANSFORM);
+        int result = OpenVrApi.setOverlayTransformAbsolute(overlay, universe, TRANSFORM);
         if (result != 0) {
             logOnce("Could not place the SteamVR screen: " + OpenVrApi.overlayErrorText(result));
         }
