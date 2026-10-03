@@ -5,15 +5,20 @@ two-eye workaround and why, the test method and open items. Update it at the end
 
 ## Project
 
-**Parallax Screen** (mod id `parallax_screen`, package `nzy.parallaxscreen`): renders Minecraft 26.2 (Fabric) in
+**Blockoscope SteamVR** (mod id `blockoscope_steamvr`, package `nzy.blockoscope.steamvr`): renders Minecraft 26.2 (Fabric) in
 stereo and shows it on a virtual screen in SteamVR (an OpenVR overlay fed each eye at full resolution), with no
 monitor, Bigscreen or VR mod needed.
 
-Started on 2026-10-02 as a copy of **Parallax Theater** 0.1.5-alpha (https://github.com/nick-yoderia/parallax-theater,
-local `..\parallax-theater`), the half side-by-side version for Bigscreen. The user keeps that one for
-watching together with someone in Bigscreen. The two are separate mods: **never merge this repo into Parallax
-Theater.** Renderer fixes may flow the other way: the `theater` remote points at the local parallax-theater repo
-(`git fetch theater && git merge theater/main`; git follows the package rename).
+Started on 2026-10-02 as a copy of **Blockoscope SBS** 0.1.5-alpha (then named Parallax Theater;
+https://github.com/nick-yoderia/blockoscope-sbs, local `..\blockoscope-sbs`), the half side-by-side
+version for Bigscreen. The user keeps that one for watching together with someone in Bigscreen. The two are separate
+mods: **never merge this repo into Blockoscope SBS.** Renderer fixes may flow the other way: the `sbs` remote points
+at the local blockoscope-sbs repo (`git fetch sbs && git merge sbs/main`; git follows the package rename).
+
+Renamed from **Parallax Screen** (`parallax_screen`, `nzy.parallaxscreen`) to Blockoscope SteamVR in 0.2.0-alpha; the
+GitHub repo was renamed too (old URLs redirect), and `StereoConfig` reads `config/parallax-screen.properties` once
+if there is no settings file yet. The development files moved with it (`config/blockoscope-steamvr.vrenv`,
+`.blockoscope-steamvr/` for the extracted DLL and texture dumps).
 
 ## Rules from the user
 
@@ -29,8 +34,8 @@ Theater.** Renderer fixes may flow the other way: the `theater` remote points at
 ## Build
 
 No Gradle. `bash build.sh` (Git Bash; from PowerShell `bash` may resolve to WSL, so use the Bash tool) compiles with
-the JDK bundled with Prism Launcher against jars already on disk and writes `build/parallax-screen-<version>.jar`.
-Optional-mod classes are only referenced from mixins in `nzy.parallaxscreen.mixin.<modid>`, which
+the JDK bundled with Prism Launcher against jars already on disk and writes `build/blockoscope-steamvr-<version>.jar`.
+Optional-mod classes are only referenced from mixins in `nzy.blockoscope.steamvr.mixin.<modid>`, which
 `CompatMixinPlugin` applies only when that mod is loaded. SteamVR is called through Java's foreign function API
 on the bundled `openvr_api.dll` (`OpenVrApi`), and the screen goes over as a D3D11 texture (`D3dShare`); see DEV_NOTES.
 
@@ -39,11 +44,11 @@ on the bundled `openvr_api.dll` (`OpenVrApi`), and the screen goes over as a D3D
 - Test instance: see DEV_NOTES "Testing". The user's real instance **26.2** runs Vivecraft + NullVR Theater; never
   modify it.
 - Helper scripts in `..\mcdev`: `cycle-screen.ps1`, `stress-screen.sh`, `winshot.ps1`, `cmd.ps1`, `keys.ps1`, `shot.ps1`, `disp2.py`.
-- The game log is `minecraft/logs/latest.log` in the instance; the mod logs with the prefix `[Parallax Screen]`.
+- The game log is `minecraft/logs/latest.log` in the instance; the mod logs with the prefix `[Blockoscope SteamVR]`.
 
 ## Code style
 
 - Minecraft 26.2 is not obfuscated: mixins use `remap = false` and real names; mixin members are prefixed
-  `parallaxScreen$`.
+  `blockoscopeSteamVr$`.
 - Javadoc-style comments explain *why* (what the game or another mod does that needs changing); keep that density.
 - Settings live in `StereoConfig` (properties file + Cloth Config screen in `StereoConfigScreen`).

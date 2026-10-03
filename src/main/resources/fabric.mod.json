@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "id": "parallax_screen",
-  "version": "0.1.0-alpha",
-  "name": "Parallax Screen",
+  "id": "blockoscope_steamvr",
+  "version": "0.2.0-alpha",
+  "name": "Blockoscope SteamVR",
   "description": "Renders Minecraft in stereoscopic 3D straight onto a virtual screen in SteamVR, at full resolution per eye, with no monitor or VR mod needed.",
   "authors": [
     "Nick Y"
   ],
   "contact": {
-    "sources": "https://github.com/nick-yoderia/parallax-screen",
-    "issues": "https://github.com/nick-yoderia/parallax-screen/issues"
+    "sources": "https://github.com/nick-yoderia/blockoscope-steamvr",
+    "issues": "https://github.com/nick-yoderia/blockoscope-steamvr/issues"
   },
   "license": "MIT",
-  "icon": "assets/parallax_screen/icon.png",
+  "icon": "assets/blockoscope_steamvr/icon.png",
   "environment": "client",
   "entrypoints": {
     "modmenu": [
-      "nzy.parallaxscreen.StereoModMenu"
+      "nzy.blockoscope.steamvr.StereoModMenu"
     ]
   },
   "mixins": [
-    "parallaxscreen.mixins.json",
-    "parallaxscreen.compat.mixins.json"
+    "blockoscope_steamvr.mixins.json",
+    "blockoscope_steamvr.compat.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.15.0",
@@ -29,7 +29,10 @@
     "java": ">=25"
   },
   "breaks": {
-    "vivecraft": "*"
+    "vivecraft": "*",
+    "blockoscope_sbs": "*",
+    "parallax_theater": "*",
+    "parallax_screen": "*"
   },
   "recommends": {
     "modmenu": "*",

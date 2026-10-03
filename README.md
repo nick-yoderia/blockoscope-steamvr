@@ -1,4 +1,6 @@
-# Parallax Screen
+# Blockoscope SteamVR
+
+*Formerly Parallax Screen.*
 
 > **Alpha.** Built and tested on one setup (see [Tested with](#tested-with)). Expect rough edges.
 
@@ -7,9 +9,9 @@ resolution and handed straight to SteamVR, which shows it on a floating screen i
 movie, without a monitor in the loop and without a VR mod. The game plays exactly like normal Minecraft (vanilla HUD,
 menus, animations, keyboard and mouse); moving your head moves your view of the screen, not the game camera.
 
-It is the SteamVR sibling of [Parallax Theater](https://github.com/nick-yoderia/parallax-theater), which packs both
+It is the SteamVR sibling of [Blockoscope SBS](https://github.com/nick-yoderia/blockoscope-sbs), which packs both
 eyes into one half side-by-side monitor image for viewing in Bigscreen (and so can be watched together with someone).
-Packing halves each eye's horizontal resolution, and the viewer stretches it back; Parallax Screen skips that step.
+Packing halves each eye's horizontal resolution, and the viewer stretches it back; Blockoscope SteamVR skips that step.
 
 ## Features
 
@@ -28,7 +30,7 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - **Automatic:** whenever SteamVR is running the screen is there; when it isn't (or you quit it) the window shows half
   side-by-side 3D instead. The mod never starts SteamVR itself.
 - **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
-- Everything from Parallax Theater: depth strength and focus distance, a HUD that sits on whatever is behind the hotbar,
+- Everything from Blockoscope SBS: depth strength and focus distance, a HUD that sits on whatever is behind the hotbar,
   menus on the screen surface, a crosshair at the depth of what you aim at, hand depth, comfort options, F9 for 2D.
 
 ### Works with
@@ -42,22 +44,23 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - Minecraft **26.2** with Fabric Loader, **Java 25** (what 26.2 ships with)
 - **SteamVR** on **Windows** (the OpenGL renderer, Minecraft's default)
 - Recommended: [Mod Menu](https://modrinth.com/mod/modmenu) and [Cloth Config](https://modrinth.com/mod/cloth-config)
-- Not compatible with Vivecraft, and don't install it together with Parallax Theater (they replace the same rendering)
+- Not compatible with Vivecraft, and don't install it together with Blockoscope SBS (they replace the same rendering)
 
 ## Setup
 
-1. Put `parallax-screen-<version>.jar` in your `mods` folder.
+1. Put `blockoscope-steamvr-<version>.jar` in your `mods` folder.
 2. Start SteamVR with your headset, then Minecraft (any order; the screen appears within a few seconds of both
    running). Keep the game window focused for keyboard and mouse.
-3. Press **F8** to bring the screen in front of you. Adjust it under **Mods > Parallax Screen > SteamVR screen**.
+3. Press **F8** to bring the screen in front of you. Adjust it under **Mods > Blockoscope SteamVR > SteamVR screen**.
 
 If the picture is upside down in the headset, turn on **Flip picture**; if the depth looks inside-out, **Swap eyes**.
 Java may print a one-time warning about "restricted methods": that is the mod calling SteamVR's library and is harmless.
 
 ## Settings
 
-**Mods > Parallax Screen** (needs Mod Menu and Cloth Config). Saving applies changes immediately. Everything is also
-stored in `config/parallax-screen.properties` (copied from Parallax Theater's settings the first time, if present):
+**Mods > Blockoscope SteamVR** (needs Mod Menu and Cloth Config). Saving applies changes immediately. Everything is also
+stored in `config/blockoscope-steamvr.properties` (the first time, settings are taken over from Parallax Screen or
+copied from Blockoscope SBS / Parallax Theater, if present):
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -101,7 +104,7 @@ SteamVR shows each half to one eye. Nothing is read back to the CPU.
 
 SteamVR is called directly through Valve's `openvr_api.dll` (bundled, BSD licence) with Java's foreign function API:
 LWJGL's OpenVR bindings were last released for LWJGL 3.3 and don't load on the LWJGL 3.4 that Minecraft 26.2 ships.
-`docs/DEV_NOTES.md` has the details, and every two-renders-per-frame workaround (shared with Parallax Theater).
+`docs/DEV_NOTES.md` has the details, and every two-renders-per-frame workaround (shared with Blockoscope SBS).
 
 ## Building
 
@@ -110,7 +113,7 @@ Mixin, LWJGL, JOML, Fabric Loader, Cloth Config, Mod Menu, Iris, Sodium, Voxy); 
 instances, adjust as needed:
 
 ```sh
-bash build.sh   # -> build/parallax-screen-<version>.jar
+bash build.sh   # -> build/blockoscope-steamvr-<version>.jar
 ```
 
 ## Tested with

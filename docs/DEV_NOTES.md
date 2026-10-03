@@ -1,10 +1,10 @@
 # Development notes
 
-Engineering notes for Parallax Screen, kept up to date at the end of each work session. `CLAUDE.md` has the
+Engineering notes for Blockoscope SteamVR (named Parallax Screen until 0.1.0-alpha), kept up to date at the end of each work session. `CLAUDE.md` has the
 workflow (build, test loop, rules); this file has the how and why. Everything up to "SteamVR screen" is shared with
-Parallax Theater (this repo started from its 0.1.5-alpha); version history before 0.1.0 is Parallax Theater's.
+Blockoscope SBS (this repo started from its 0.1.5-alpha); version history before 0.1.0 is Blockoscope SBS's.
 
-## SteamVR screen (what Parallax Screen adds)
+## SteamVR screen (what Blockoscope SteamVR adds)
 
 Output: `StereoRenderer.render` asks `VrScreen.active()`. When the SteamVR screen is up, each eye target is
 `VrScreen.eyeResolution()` wide in the window's aspect (setting, or automatic: SteamVR's recommended render width over
@@ -13,7 +13,7 @@ headset pixels across the screen at the centre of view; the null driver gives 92
 2 m) (so the projection and the GUI layout, which follow the window, still
 fit), and the eyes are packed into `screenTarget` (2 x eye width); the GUI-over-window pass draws into it (`packedWidth`
 /`packedHeight` drive `guiArea*`), `VrScreen.submit` hands it to the overlay (through `D3dShare`), and the window gets a preview
-(`EyeBlit.drawFull`, left half only unless `previewBothEyes`). Without SteamVR everything is Parallax Theater's half
+(`EyeBlit.drawFull`, left half only unless `previewBothEyes`). Without SteamVR everything is Blockoscope SBS's half
 side-by-side window output.
 
 `VrScreen`: OpenVR **overlay application** (not a scene app): SteamVR keeps its own scene and composites the overlay
@@ -85,7 +85,7 @@ Java 25's foreign function API (hence `--release 25`): the exports `VR_InitInter
 `VR_GetGenericInterface("FnTable:IVRSystem_022" / "FnTable:IVROverlay_027")`, then function pointers by slot. Slot
 numbers were read from LWJGL 3.3.6's `OpenVR$IVROverlay`/`$IVRSystem` constructors (generated from openvr_capi.h);
 struct sizes (VREvent_t 64, TrackedDevicePose_t 80 with bPoseIsValid at 76, Texture_t 16) from LWJGL's struct classes.
-The DLL is copied to `.parallax-screen/openvr_api.dll` in the game folder and loaded from there.
+The DLL is copied to `.blockoscope-steamvr/openvr_api.dll` in the game folder and loaded from there.
 
 ## Render flow
 
@@ -170,11 +170,11 @@ Depth math: an eye at x = side * ipd/2 sees a point straight ahead at distance d
 Rule of thumb when something shows in only one eye: look for (a) state computed once per frame or at extraction
 relative to the centre camera, (b) objects that cache the main render target or a pipeline, (c) ring buffers rotated
 per frame but written per eye. The first eye failing (not the left eye) points at (c) or at state left by the end of
-the previous frame; `config/parallax-theater.rightfirst` renders the right eye first to tell them apart.
+the previous frame; `config/blockoscope-sbs.rightfirst` renders the right eye first to tell them apart.
 
 ## Comfort (vs Vivecraft NullVR)
 
-Vivecraft cancels `bobView`/`bobHurt` for the camera, slows nausea, and draws a 3D crosshair. Parallax Theater does
+Vivecraft cancels `bobView`/`bobHurt` for the camera, slows nausea, and draws a 3D crosshair. Blockoscope SBS does
 the same in 3D only (settings in the Comfort tab); the hand keeps vanilla bobbing. Focus distance defaults to 10 m,
 the user's setting in NullVR Theater.
 
@@ -182,18 +182,18 @@ the user's setting in NullVR Theater.
 
 Tools in `..\mcdev` (outside the repo):
 
-- `cycle-screen.ps1 -Shot name`: close the **26.2-Screen-Dev** instance (a copy of 26.2-Stereo-Dev, the Parallax
-  Theater test instance), install the built jar, launch into the world, screenshot. (`cycle.ps1` is Parallax Theater's.)
+- `cycle-screen.ps1 -Shot name`: close the **26.2-Blockoscope-SteamVR-Dev** instance (a copy of 26.2-Blockoscope-SBS-Dev,
+  the Blockoscope SBS test instance), install the built jar, launch into the world, screenshot. (`cycle.ps1` is Blockoscope SBS's.)
 - SteamVR without a headset: the user's `steamvr.vrsettings` must not be changed (the permission system refused it).
   Instead `mcdev\vrtest\config\steamvr.vrsettings` forces SteamVR's null driver, and SteamVR is pointed at that
   folder with `VR_CONFIG_PATH` (logs: `VR_LOG_PATH=mcdev\vrtest\logs`). The game sets those variables itself before
-  connecting when `config/parallax-screen.vrenv` (KEY=VALUE lines, development only) exists in the instance; to start
+  connecting when `config/blockoscope-steamvr.vrenv` (KEY=VALUE lines, development only) exists in the instance; to start
   SteamVR by hand use PowerShell with `$env:VR_CONFIG_PATH`/`$env:VR_LOG_PATH` set and
   `Start-Process ...\SteamVR\bin\win64\vrstartup.exe`. The null headset's view is the compositor's "Headset Window"
   (`winshot.ps1 -Process vrcompositor` captures it with PrintWindow; not while the PC is locked). Quit it by closing
   the `vrmonitor` window. SteamVR's stereo screenshot (`vrshot\VrShot.java`) fails without a scene app.
-- What the mod hands SteamVR: create `config/parallax-screen.dump` in the instance; the next frame's screen texture is
-  saved to `.parallax-screen/screen.png` (`TextureDump`, development only) and the file deleted. Works while the PC is
+- What the mod hands SteamVR: create `config/blockoscope-steamvr.dump` in the instance; the next frame's screen texture is
+  saved to `.blockoscope-steamvr/screen.png` (`TextureDump`, development only) and the file deleted. Works while the PC is
   locked; `disp2.py` measures it like a window screenshot (eye pixels). Note Blaze3D leaves `GL_PACK_ROW_LENGTH` at
   2048 after its own read-backs; reset it (and skips/alignment) around any `glGetTextureImage`, or rows come out
   sheared. First measurement (null driver, auto 1200 px eyes, focus 4 m): hotbar -20 px on the dirt edge below it,
@@ -206,12 +206,12 @@ Tools in `..\mcdev` (outside the repo):
   Both refuse to type unless the game window is in front (`focus.ps1`), so keystrokes can't leak elsewhere.
 - `disp2.py shot.png name=y0,y1,x0,x1 ...`: sub-pixel disparity of a region (full-res coordinates, left-half x).
   Negative = in front of the screen. Compare against the formula above.
-- Debug logging: create `config/parallax-screen.debug` (FPS every 5 s plus any `StereoDebug.log`).
+- Debug logging: create `config/blockoscope-steamvr.debug` (FPS every 5 s plus any `StereoDebug.log`).
 - Test scene in the dev world copy: stone floor, a gold-block pillar ~5 m ahead and a NoAI iron golem beside it.
   `gamerule advance_time false`, `gamerule advance_weather false` keep lighting stable.
 - Decompiled sources (Vineflower) in `mcdev\src\{mc,b3d,sodium-...,iris,voxy-...,vivecraft}`.
 
-Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in window 3D (Parallax Theater). With the SteamVR
+Measured (BSL + Voxy, 2560x1440, RX 9070 XT): about 200-250 FPS in window 3D (Blockoscope SBS). With the SteamVR
 screen at 1920 per eye (3840x1080 texture) and the null-driver compositor running: about 150 FPS.
 
 ## Open items

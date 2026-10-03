@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds build/parallax-screen-<version>.jar with the JDK that ships with Prism Launcher.
+# Builds build/blockoscope-steamvr-<version>.jar with the JDK that ships with Prism Launcher.
 # Compiles against Mixin, LWJGL, JOML, the Minecraft client jar, Fabric Loader, Cloth Config, Mod Menu and
 # Iris (none are bundled; Iris support only loads when Iris is installed).
 set -euo pipefail
@@ -14,7 +14,7 @@ GLFW="$(ls "$LIBS"/org/lwjgl/lwjgl-glfw/*/lwjgl-glfw-*.jar | grep -v natives | t
 GL="$(ls "$LIBS"/org/lwjgl/lwjgl-opengl/*/lwjgl-opengl-*.jar | grep -v natives | tail -1)"
 MC="$LIBS/com/mojang/minecraft/$MC_VERSION/minecraft-$MC_VERSION-client.jar"
 JOML="$(ls "$LIBS"/org/joml/joml/*/joml-*.jar | tail -1)"
-MODS="$APPDATA/PrismLauncher/instances/26.2-Stereo-Dev/minecraft/mods"
+MODS="$APPDATA/PrismLauncher/instances/26.2-Blockoscope-SBS-Dev/minecraft/mods"
 CLOTH="$(ls "$MODS"/cloth-config-*.jar | tail -1)"
 MODMENU="$(ls "$MODS"/modmenu-*.jar | tail -1)"
 IRIS="$(ls "$APPDATA"/PrismLauncher/instances/26.2/minecraft/mods/iris-fabric-*.jar | tail -1)"
@@ -33,5 +33,5 @@ VERSION="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' src/main/resources/fabric.mod
 rm -rf build && mkdir -p build/classes
 "$JDK/javac.exe" --release 25 -Xlint:all,-classfile,-restricted -cp "$CP" -d build/classes $(find src/main/java -name '*.java')
 cp -r src/main/resources/. build/classes/
-"$JDK/jar.exe" --create --file "build/parallax-screen-$VERSION.jar" -C build/classes .
-echo "Built build/parallax-screen-$VERSION.jar"
+"$JDK/jar.exe" --create --file "build/blockoscope-steamvr-$VERSION.jar" -C build/classes .
+echo "Built build/blockoscope-steamvr-$VERSION.jar"
