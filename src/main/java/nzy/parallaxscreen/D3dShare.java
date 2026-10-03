@@ -63,6 +63,7 @@ final class D3dShare {
     private static MemorySegment texture = MemorySegment.NULL;
     private static MemorySegment interopObject = MemorySegment.NULL;
     private static int glTexture;
+    private static int lockFailures;
     private static int width;
     private static int height;
 
@@ -92,8 +93,14 @@ final class D3dShare {
             }
             OBJECTS.set(ADDRESS, 0, interopObject);
             if ((int) dxLockObjects.invokeExact(interopDevice, 1, OBJECTS) == 0) {
-                return MemorySegment.NULL;
+                // The texture keeps the previous frame; resending that beats switching paths for one frame.
+                if (++lockFailures >= 30) {
+                    failure = "the shared texture could not be locked";
+                    return MemorySegment.NULL;
+                }
+                return texture;
             }
+            lockFailures = 0;
             try {
                 GL43.glCopyImageSubData(source, GL11.GL_TEXTURE_2D, 0, 0, 0, 0,
                     glTexture, GL11.GL_TEXTURE_2D, 0, 0, 0, 0, w, h, 1);

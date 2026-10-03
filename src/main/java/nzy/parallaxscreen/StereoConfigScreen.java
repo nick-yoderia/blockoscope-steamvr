@@ -83,6 +83,13 @@ public final class StereoConfigScreen {
             .setSaveConsumer(value -> StereoConfig.setEyeResolution(value <= 9 ? 0 : value * 64))
             .build());
 
+        screen.addEntry(entries.startBooleanToggle(Component.literal("Sync to headset"), StereoConfig.syncToHeadset())
+            .setDefaultValue(true)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off (free-running)"))
+            .setTooltip(Component.literal("One frame per headset refresh: smoother turning, less GPU load."))
+            .setSaveConsumer(StereoConfig::setSyncToHeadset)
+            .build());
+
         screen.addEntry(entries.startBooleanToggle(Component.literal("Screen size"), StereoConfig.trueScale())
             .setDefaultValue(false)
             .setYesNoTextSupplier(on -> Component.literal(on ? "True scale" : "Custom"))

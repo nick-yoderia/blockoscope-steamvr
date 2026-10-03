@@ -42,6 +42,7 @@ final class OpenVrApi {
     static final int UNIVERSE_SEATED = 0;
     static final int UNIVERSE_STANDING = 1;
     static final int EVENT_QUIT = 700;
+    static final int PROP_DISPLAY_FREQUENCY = 2002;
     static final int MAX_DEVICES = 64;
     static final int HMD_INDEX = 0;
 
@@ -60,10 +61,12 @@ final class OpenVrApi {
     private static final int OVERLAY_SET_TEXTURE_BOUNDS = 29;
     private static final int OVERLAY_SET_TRANSFORM_ABSOLUTE = 32;
     private static final int OVERLAY_SHOW = 41;
+    private static final int OVERLAY_WAIT_FRAME_SYNC = 45;
     private static final int OVERLAY_SET_TEXTURE = 58;
     private static final int SYSTEM_GET_RECOMMENDED_SIZE = 0;
     private static final int SYSTEM_GET_PROJECTION_RAW = 2;
     private static final int SYSTEM_GET_POSES = 11;
+    private static final int SYSTEM_GET_FLOAT_PROPERTY = 22;
     private static final int SYSTEM_POLL_EVENT = 29;
     private static final int SYSTEM_ACKNOWLEDGE_QUIT = 43;
 
@@ -87,6 +90,8 @@ final class OpenVrApi {
     private static MethodHandle setOverlayTransformAbsolute;
     private static MethodHandle showOverlay;
     private static MethodHandle setOverlayTexture;
+    private static MethodHandle waitFrameSync;
+    private static MethodHandle getFloatProperty;
     private static MethodHandle getPoses;
     private static MethodHandle getRecommendedSize;
     private static MethodHandle getProjectionRaw;
@@ -200,6 +205,8 @@ final class OpenVrApi {
                 FunctionDescriptor.of(JAVA_INT, JAVA_LONG, JAVA_INT, ADDRESS));
             showOverlay = slot(overlay, OVERLAY_SHOW, FunctionDescriptor.of(JAVA_INT, JAVA_LONG));
             setOverlayTexture = slot(overlay, OVERLAY_SET_TEXTURE, FunctionDescriptor.of(JAVA_INT, JAVA_LONG, ADDRESS));
+            waitFrameSync = slot(overlay, OVERLAY_WAIT_FRAME_SYNC, FunctionDescriptor.of(JAVA_INT, JAVA_INT));
+            getFloatProperty = slot(system, SYSTEM_GET_FLOAT_PROPERTY, FunctionDescriptor.of(JAVA_FLOAT, JAVA_INT, JAVA_INT, ADDRESS));
             getPoses = slot(system, SYSTEM_GET_POSES, FunctionDescriptor.ofVoid(JAVA_INT, JAVA_FLOAT, ADDRESS, JAVA_INT));
             getRecommendedSize = slot(system, SYSTEM_GET_RECOMMENDED_SIZE, FunctionDescriptor.ofVoid(ADDRESS, ADDRESS));
             getProjectionRaw = slot(system, SYSTEM_GET_PROJECTION_RAW,
@@ -282,6 +289,20 @@ final class OpenVrApi {
     /** Texture_t: the texture handle (8 bytes), its type and its colour space (4 bytes each). */
     static int setOverlayTexture(long overlay, MemorySegment texture) throws Throwable {
         return (int) setOverlayTexture.invokeExact(overlay, texture);
+    }
+
+    /** Blocks until the compositor starts its next frame (or the timeout passes); returns an EVROverlayError. */
+    static int waitFrameSync(int timeoutMillis) throws Throwable {
+        return (int) waitFrameSync.invokeExact(timeoutMillis);
+    }
+
+    /** The headset's refresh rate in Hz, or 0 if SteamVR doesn't say. */
+    static float displayFrequency() throws Throwable {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment error = arena.allocate(JAVA_INT);
+            float hz = (float) getFloatProperty.invokeExact(HMD_INDEX, PROP_DISPLAY_FREQUENCY, error);
+            return error.get(JAVA_INT, 0) == 0 && hz > 0f ? hz : 0f;
+        }
     }
 
     /** Fills {@code poses} (an array of TrackedDevicePose_t) with every device's current pose. */

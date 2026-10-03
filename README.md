@@ -19,6 +19,10 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - **SteamVR screen:** an OpenVR overlay in SteamVR Home or the void, with adjustable size, distance, height and curve.
   SteamVR draws it at the headset's refresh rate, so head movement stays smooth whatever the game's frame rate is.
   **F8** puts it straight in front of you again.
+- **Synced to the headset:** the game makes one frame per headset refresh, so turning looks even instead of
+  stuttering against the headset's fixed rate, and the GPU isn't busy with frames nobody sees. It runs free whenever
+  it can't keep up. While the screen is up, the monitor's VSync and Minecraft's AFK and minimised-window frame-rate
+  limits are ignored: you may be watching without touching anything.
 - **True scale** (optional): the screen covers exactly the game's field of view and the focus is at the screen, so
   with depth strength 100% the world is life-size, as if looking through a window.
 - **Automatic:** whenever SteamVR is running the screen is there; when it isn't (or you quit it) the window shows half
@@ -60,6 +64,7 @@ stored in `config/parallax-screen.properties` (copied from Parallax Theater's se
 | `enabled` | `true` | 3D on (F9 toggles it) |
 | `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
 | `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen; `0` = automatic (what the headset shows) |
+| `syncToHeadset` | `true` | One game frame per headset refresh while the SteamVR screen is on |
 | `trueScale` | `false` | Size the screen to the game's field of view and focus at the screen (life-size world) |
 | `screenWidth` | `2.6` | Screen width in metres (when not true scale) |
 | `screenDistance` | `2.0` | Metres from your head to the screen, applied when it is placed or recentered (F8) |
@@ -90,9 +95,9 @@ stored in `config/parallax-screen.properties` (copied from Parallax Theater's se
 
 Minecraft 26.2 extracts everything it draws into a render state once per frame, then renders from that state. The mod
 runs the render half twice, once per eye, with the camera moved sideways by half the eye spacing and the projection
-shifted so things at the focus distance line up. The eyes are packed side by side into one texture, which is handed by
-its OpenGL id to an OpenVR overlay flagged as side-by-side stereo; SteamVR copies it on the GPU and shows each half to
-one eye.
+shifted so things at the focus distance line up. The eyes are packed side by side into one texture, which is copied on the GPU into a Direct3D 11
+texture (OpenGL/Direct3D interop owned by the mod) and handed to an OpenVR overlay flagged as side-by-side stereo;
+SteamVR shows each half to one eye. Nothing is read back to the CPU.
 
 SteamVR is called directly through Valve's `openvr_api.dll` (bundled, BSD licence) with Java's foreign function API:
 LWJGL's OpenVR bindings were last released for LWJGL 3.3 and don't load on the LWJGL 3.4 that Minecraft 26.2 ships.

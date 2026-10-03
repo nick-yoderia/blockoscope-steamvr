@@ -12,7 +12,7 @@ the eye's tangent span (`GetRecommendedRenderTargetSize`, `GetProjectionRaw`) ti
 headset pixels across the screen at the centre of view; the null driver gives 926 px per tangent, 1200 px for 2.6 m at
 2 m) (so the projection and the GUI layout, which follow the window, still
 fit), and the eyes are packed into `screenTarget` (2 x eye width); the GUI-over-window pass draws into it (`packedWidth`
-/`packedHeight` drive `guiArea*`), `VrScreen.submit` hands its GL id to the overlay, and the window gets a preview
+/`packedHeight` drive `guiArea*`), `VrScreen.submit` hands it to the overlay (through `D3dShare`), and the window gets a preview
 (`EyeBlit.drawFull`, left half only unless `previewBothEyes`). Without SteamVR everything is Parallax Theater's half
 side-by-side window output.
 
@@ -31,13 +31,31 @@ Connecting (`VrScreen.connect`, daemon thread, every 5 s while not connected): o
 (`VREvent_Quit` -> `AcknowledgeQuit_Exiting`, `stop`) doesn't bring it back. Verified: detach on quit, re-attach
 within 5 s of SteamVR starting. A shutdown hook calls `VR_ShutdownInternal` when the game exits.
 
-Texture bounds: plain 0..1 by default, as Vivecraft submits Minecraft's GL eye textures to the compositor; `flipScreen`
-flips. **Not yet checked in a headset.** Ways to see the null-driver output that did *not* work: SteamVR's stereo
-screenshot (needs a scene app's textures), PrintWindow of the compositor's "Headset Window" while the PC is locked, and
-the compositor mirror texture (`IVRCompositor_028::GetMirrorTextureGL`, slot 36; it must be requested a few frames
-before reading or it is black): it showed only a flat teal scene layer (RGB 0,134,112, no scene app running), with
-neither this overlay nor the SteamVR dashboard in it, although both reported visible. So the mirror leaves overlays
-out (or the null compositor doesn't draw them); check in the headset, or capture the Headset Window while unlocked.
+Texture handoff (`D3dShare`, 0.1.0): SteamVR gets a **Direct3D 11 texture**, not the GL one. Handing it the GL id
+(the first version) makes vrclient share the texture itself through the driver's GL/D3D interop ("Scene create
+OpenGL" in `vrclient_javaw.txt`); on the RX 9070 XT that once froze the render thread for good inside
+`SetOverlayTexture` (native stack: vrclient_x64 -> atio6axx -> WaitForSingleObject; no CPU use; still stuck after
+SteamVR was killed; the compositor kept running). It happened 1.5 min after a SteamVR restart while opening Mod Menu
+and could not be reproduced on demand (idle, menus, re-attach, F8, ~10 min at 225 FPS). Now the mod creates its own
+D3D11 device (`D3D11CreateDevice`, default adapter, i.e. the desktop GPU the GL context runs on), one
+R8G8B8A8_UNORM texture registered with GL via `WGL_NV_DX_interop` (`wglDXOpenDeviceNV`/`RegisterObjectNV`, procs from
+`wglGetProcAddress`), and each frame locks it, `glCopyImageSubData`s the packed target into it, unlocks and submits
+it as `TextureType_DirectX` ("Scene create D3D11"). Only this process touches that texture, so the lock waits only on
+our own GPU work, and SteamVR's D3D11 overlay path is the one most overlay apps use. Stress-tested
+(`mcdev\stress-screen.sh`: 140 menu open/close cycles, 14 SteamVR force-kills and restarts) without a hang. If any
+step fails, the GL id is submitted as before and the log says why. COM calls go through vtable slots
+(`ID3D11Device::CreateTexture2D` 5, `IUnknown::Release` 2).
+
+Texture bounds: the GL id needs plain 0..1 (SteamVR accounts for GL's bottom-up rows itself, as for Vivecraft's
+eye textures); the D3D11 copy arrives upside down (GL row 0 is the bottom one), so `D3dShare.FLIPPED` flips the
+bounds; `flipScreen` flips once more. Both verified upright in the null headset's compositor window.
+
+Seeing the null headset's output: capture the compositor's "Headset Window" (`winshot.ps1 -Process vrcompositor`)
+while the PC is unlocked; it shows the overlay in both eyes. Disable the dashboard in the test config
+(`dashboard.enableDashboard false`) or it covers the screen; "Room Setup / Waiting" remains (no room setup in the test
+config). First compositor measurement (hotbar against the screen frame): -15 headset px, distant hills +4: the eyes
+are the right way round. What did *not* work: SteamVR's stereo screenshot (needs a scene app's textures), PrintWindow
+while locked, and the compositor mirror texture (`GetMirrorTextureGL`), which leaves overlays out.
 
 ### OpenVR binding (`OpenVrApi`)
 
@@ -162,6 +180,10 @@ Tools in `..\mcdev` (outside the repo):
   2048 after its own read-backs; reset it (and skips/alignment) around any `glGetTextureImage`, or rows come out
   sheared. First measurement (null driver, auto 1200 px eyes, focus 4 m): hotbar -20 px on the dirt edge below it,
   crosshair +2 px resting at reach, far terrain +5 px; picture upright with GL rows read bottom-up.
+- `stress-screen.sh [rounds]` (Git Bash, game and test SteamVR running): per round, 10 times Escape + Mod Menu +
+  Escape with the game focused, then SteamVR force-killed and restarted; fails as soon as the game stops responding.
+  For a hang: `jcmd <pid> Thread.print` for the Java side, `python nstack.py <pid> <tid>` for the native stack of a
+  thread (dbghelp StackWalk64, module+offset) and `waitchain.ps1 -ThreadId <tid>` for lock owners.
 - `cmd.ps1 -Commands @('time set noon', ...)`: chat commands via the clipboard; `keys.ps1 -Keys @('{F9}')`.
   Both refuse to type unless the game window is in front (`focus.ps1`), so keystrokes can't leak elsewhere.
 - `disp2.py shot.png name=y0,y1,x0,x1 ...`: sub-pixel disparity of a region (full-res coordinates, left-half x).
@@ -176,8 +198,10 @@ screen at 1920 per eye (3840x1080 texture) and the null-driver compositor runnin
 
 ## Open items
 
-- Headset check of the SteamVR screen: orientation (flipScreen), placement and F8, sharpness, comfort of the default
-  size (2.6 m at 2 m).
+- Headset check of the SteamVR screen in the Steam Frame: placement and F8, sharpness, comfort of the default size
+  (2.6 m at 2 m). Orientation and eye order are verified in the null headset's compositor.
+- D3D11 device on the default adapter: on a multi-GPU PC where the game runs on another GPU, the interop fails and
+  the GL fallback is used (could match the adapter by LUID from `IVRSystem::GetDXGIOutputInfo`).
 - A Voxy "Section mesh generation service ... Not running" exception appeared once at world load in the Screen
   instance and not again on relaunch; watch for it.
 

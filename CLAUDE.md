@@ -31,13 +31,14 @@ Theater.** Renderer fixes may flow the other way: the `theater` remote points at
 No Gradle. `bash build.sh` (Git Bash; from PowerShell `bash` may resolve to WSL, so use the Bash tool) compiles with
 the JDK bundled with Prism Launcher against jars already on disk and writes `build/parallax-screen-<version>.jar`.
 Optional-mod classes are only referenced from mixins in `nzy.parallaxscreen.mixin.<modid>`, which
-`CompatMixinPlugin` applies only when that mod is loaded. LWJGL's OpenVR bindings are bundled (see DEV_NOTES).
+`CompatMixinPlugin` applies only when that mod is loaded. SteamVR is called through Java's foreign function API
+on the bundled `openvr_api.dll` (`OpenVrApi`), and the screen goes over as a D3D11 texture (`D3dShare`); see DEV_NOTES.
 
 ## Test loop
 
 - Test instance: see DEV_NOTES "Testing". The user's real instance **26.2** runs Vivecraft + NullVR Theater; never
   modify it.
-- Helper scripts in `..\mcdev`: `cycle.ps1`, `cmd.ps1`, `keys.ps1`, `shot.ps1`, `disp2.py`.
+- Helper scripts in `..\mcdev`: `cycle-screen.ps1`, `stress-screen.sh`, `winshot.ps1`, `cmd.ps1`, `keys.ps1`, `shot.ps1`, `disp2.py`.
 - The game log is `minecraft/logs/latest.log` in the instance; the mod logs with the prefix `[Parallax Screen]`.
 
 ## Code style

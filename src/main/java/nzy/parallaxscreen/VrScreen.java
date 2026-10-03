@@ -34,6 +34,12 @@ public final class VrScreen {
     private static boolean placed;
     /** Headset pixels per unit of tan(angle), for the automatic eye resolution (0 = unknown). */
     private static float pixelsPerTangent;
+    /** Headset refresh rate (0 = unknown) and the frame pacing state (see {@link #pace}). */
+    private static float displayHz;
+    private static long frameStartNanos;
+    private static float frameWorkNanos;
+    private static int syncTimeouts;
+    private static long syncPausedUntilNanos;
     /** Tracking space the screen was placed in (seated, or standing when there is no seated origin). */
     private static int universe = OpenVrApi.UNIVERSE_SEATED;
     private static boolean recenterRequested;
@@ -186,9 +192,11 @@ public final class VrScreen {
             placed = false;
             lastError = "";
             pixelsPerTangent = OpenVrApi.pixelsPerTangent();
+            displayHz = OpenVrApi.displayFrequency();
+            frameStartNanos = 0L;
             OpenVrApi.showOverlay(overlay);
             System.out.println("[Parallax Screen] SteamVR screen started (" + Math.round(pixelsPerTangent)
-                + " headset pixels per tangent; eyes render " + eyeResolution() + " wide)");
+                + " headset pixels per tangent; eyes render " + eyeResolution() + " wide; headset " + Math.round(displayHz) + " Hz)");
         } catch (Throwable t) {
             logOnce("SteamVR screen could not be shown: " + t);
             stop("error");
@@ -304,11 +312,62 @@ public final class VrScreen {
             if (result != 0) {
                 logOnce("SteamVR did not take the frame: " + OpenVrApi.overlayErrorText(result));
             }
+            pace();
         } catch (Throwable t) {
             logOnce("SteamVR screen error: " + t);
             stop("error");
         }
     }
+
+    /**
+     * Sync to headset: after handing over a frame, waits for the compositor's next frame, so the game makes one frame
+     * per headset refresh. A free-running game (often 150-250 FPS) beats against the headset's fixed rate: each
+     * refresh then shows a frame of a different age and turning looks uneven; it also takes GPU time the compositor
+     * needs. When the game can't keep up (a frame takes over 85% of a refresh, averaged), it runs free instead, so it
+     * never drops to every other refresh the way VSync would. Repeated timeouts (the headset asleep, the compositor not
+     * drawing) pause the waiting for a few seconds.
+     */
+    private static void pace() throws Throwable {
+        long now = System.nanoTime();
+        if (frameStartNanos != 0L) {
+            frameWorkNanos += ((now - frameStartNanos) - frameWorkNanos) * 0.1f;
+        }
+        if (StereoConfig.syncToHeadset() && displayHz > 0f && now >= syncPausedUntilNanos) {
+            float interval = 1e9f / displayHz;
+            if (frameWorkNanos < interval * 0.85f) {
+                long waitStart = System.nanoTime();
+                int result = OpenVrApi.waitFrameSync(Math.round(interval / 1e6f) + 5);
+                if (StereoDebug.ENABLED) {
+                    debugWaits++;
+                    debugWaitNanos += System.nanoTime() - waitStart;
+                    debugLastResult = result;
+                    if (result != 0) {
+                        debugErrors++;
+                    }
+                }
+                if (result == 0) {
+                    syncTimeouts = 0;
+                } else if (++syncTimeouts >= 3) {
+                    syncTimeouts = 0;
+                    syncPausedUntilNanos = System.nanoTime() + 3_000_000_000L;
+                }
+            }
+        }
+        frameStartNanos = System.nanoTime();
+        if (StereoDebug.ENABLED && ++debugFrames >= 500) {
+            StereoDebug.log("pace: " + debugFrames + " frames, " + debugWaits + " waits averaging "
+                + (debugWaits > 0 ? debugWaitNanos / debugWaits / 1000 : 0) + " us, " + debugErrors + " errors (last "
+                + debugLastResult + "), work " + Math.round(frameWorkNanos / 1000f) + " us");
+            debugFrames = debugWaits = debugErrors = 0;
+            debugWaitNanos = 0L;
+        }
+    }
+
+    private static int debugFrames;
+    private static int debugWaits;
+    private static int debugErrors;
+    private static int debugLastResult;
+    private static long debugWaitNanos;
 
     private static void pollEvents() throws Throwable {
         while (started && OpenVrApi.pollEvent(EVENT)) {
