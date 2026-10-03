@@ -119,6 +119,14 @@ public final class StereoConfigScreen {
             .setSaveConsumer(value -> StereoConfig.setEyeResolution(value <= 9 ? 0 : value * 64))
             .build());
 
+        screen.addEntry(entries.startBooleanToggle(Component.literal("Headset off = 2D"), StereoConfig.headsetOffTo2D())
+            .setDefaultValue(true)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off"))
+            .setTooltip(Component.literal("Normal view on the monitor while the headset is off your head."),
+                Component.literal("Off = only when it's disconnected or asleep."))
+            .setSaveConsumer(StereoConfig::setHeadsetOffTo2D)
+            .build());
+
         screen.addEntry(entries.startBooleanToggle(Component.literal("Sync to headset"), StereoConfig.syncToHeadset())
             .setDefaultValue(true)
             .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off (free-running)"))

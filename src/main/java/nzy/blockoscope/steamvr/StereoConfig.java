@@ -22,7 +22,7 @@ public final class StereoConfig {
 
     /** When the game renders in 3D. */
     public enum Mode {
-        /** While the SteamVR screen is up (SteamVR running), flat otherwise: right for a shared mod pack. */
+        /** While the SteamVR screen is up (SteamVR running with a headset in use), flat otherwise: right for a shared mod pack. */
         AUTO,
         /** Always; without SteamVR as half side-by-side in the window. */
         ON,
@@ -54,7 +54,7 @@ public final class StereoConfig {
         Path.of("config", "parallax-theater.properties"));
     private static final String HEADER = String.join("\n",
         "Blockoscope SteamVR",
-        "mode: auto (3D on the SteamVR screen while SteamVR runs, normal 2D otherwise), on (always 3D; half side-by-side in the window without SteamVR) or off (normal 2D)",
+        "mode: auto (3D on the SteamVR screen while SteamVR runs with a headset connected and awake, normal 2D otherwise), on (always 3D; half side-by-side in the window without SteamVR) or off (normal 2D)",
         "renderScale: in the window (no SteamVR screen), % of the half-window resolution each eye renders at (lower = faster)",
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
@@ -74,6 +74,7 @@ public final class StereoConfig {
         "steamVrScreen: show the game on a screen in SteamVR (false = half side-by-side in the window)",
         "eyeResolution: width in pixels each eye renders at for the SteamVR screen (height follows the window's shape); 0 = automatic, 1.5x as many as the headset shows across the screen, rounded so the HUD lands on whole pixels",
         "syncToHeadset: one game frame per headset refresh while the SteamVR screen is on (smooth motion; runs free when the game can't keep up)",
+        "headsetOffTo2D: back to normal 2D on the monitor while the headset is off your head (its proximity sensor), 3D again when you put it on; false = only when it is disconnected or asleep",
         "screenSize: custom (screenWidth, the game's FOV), true_scale (the screen grows to the game's FOV) or match_fov (the game's FOV shrinks to the screen); both life-size modes focus at the screen and ignore focusDistance",
         "floatingWindow: blank a thin strip at the outer edge of each eye so the screen's edges float in front, at the held item's depth (no item cut off by an edge behind it)",
         "screenWidth: width of the SteamVR screen in metres",
@@ -104,6 +105,7 @@ public final class StereoConfig {
     private static boolean syncToHeadset = true;
     private static ScreenSize screenSize = ScreenSize.CUSTOM;
     private static boolean floatingWindow = true;
+    private static boolean headsetOffTo2D = true;
     private static float screenWidth = 2.6f;
     private static float screenDistance = 2.0f;
     private static float screenHeight = 0f;
@@ -162,6 +164,7 @@ public final class StereoConfig {
     public static ScreenSize screenSize() { return previewScreenSize != null ? previewScreenSize : screenSize; }
     /** True in either life-size mode: the screen covers exactly the game's field of view and is the focus distance. */
     public static boolean lifeSize() { return screenSize() != ScreenSize.CUSTOM; }
+    public static boolean headsetOffTo2D() { return headsetOffTo2D; }
     public static boolean floatingWindow() { return previewFloatingWindow != null ? previewFloatingWindow : floatingWindow; }
     public static float screenWidth() { return previewScreenWidth != null ? previewScreenWidth : screenWidth; }
     public static float screenDistance() { return previewScreenDistance != null ? previewScreenDistance : screenDistance; }
@@ -195,6 +198,7 @@ public final class StereoConfig {
     public static void setEyeResolution(int value) { eyeResolution = value <= 0 ? 0 : Math.max(640, Math.min(4096, value)); }
     public static void setScreenSize(ScreenSize value) { screenSize = value == null ? ScreenSize.CUSTOM : value; }
     public static void setFloatingWindow(boolean value) { floatingWindow = value; }
+    public static void setHeadsetOffTo2D(boolean value) { headsetOffTo2D = value; }
     public static void setScreenWidth(float value) { screenWidth = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenDistance(float value) { screenDistance = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenHeight(float value) { screenHeight = Math.max(-3f, Math.min(3f, value)); }
@@ -268,6 +272,7 @@ public final class StereoConfig {
         screenSize = parseEnum(ScreenSize.class, props.getProperty("screenSize"), oldSize);
         syncToHeadset = parseBoolean(props.getProperty("syncToHeadset"), true);
         floatingWindow = parseBoolean(props.getProperty("floatingWindow"), true);
+        headsetOffTo2D = parseBoolean(props.getProperty("headsetOffTo2D"), true);
         setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), 2.6));
         setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), 2.0));
         setScreenHeight((float) parseDouble(props.getProperty("screenHeight"), 0));
@@ -303,6 +308,7 @@ public final class StereoConfig {
         out.setProperty("screenSize", screenSize.name().toLowerCase(java.util.Locale.ROOT));
         out.setProperty("syncToHeadset", String.valueOf(syncToHeadset));
         out.setProperty("floatingWindow", String.valueOf(floatingWindow));
+        out.setProperty("headsetOffTo2D", String.valueOf(headsetOffTo2D));
         out.setProperty("screenWidth", String.valueOf(screenWidth));
         out.setProperty("screenDistance", String.valueOf(screenDistance));
         out.setProperty("screenHeight", String.valueOf(screenHeight));

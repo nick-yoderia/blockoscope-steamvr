@@ -118,6 +118,16 @@ better). Verified: auto starts in 2D and turns 3D when the screen connects; the 
 the screen. The floating window strip is skipped under menus drawn into the eyes (it cut the button off in the left
 eye).
 
+Headset in use (0.3.0, `VrScreen.updateHeadset`, `OpenVrApi.headsetInUse`): being connected to SteamVR is not enough
+(the user: many people run SteamVR without connecting the headset and want to play flat). `active()` = connected
+and the HMD (index 0) connected (`IsTrackedDeviceConnected`, IVRSystem slot 20) and, with `headsetOffTo2D` (default
+on, the user asked for Vivecraft's hot switching), on someone's head: `GetTrackedDeviceActivityLevel` (slot 15) is
+UserInteraction or UserInteraction_Timeout, exactly Vivecraft's `MCOpenVR.isActive`; with it off, anything but
+Standby. Checked every 0.5 s, a change counts after 1 s; the overlay is hidden (`HideOverlay`, slot 42) or shown
+and re-centred. Slots verified against LWJGL 3.3.6's `OpenVR$IVRSystem`/`$IVROverlay` constructors. The null
+driver's headset counts as worn; when its SteamVR quits, the headset goes before the quit event and the game logged
+"No headset in use" and went 2D. Taking a real headset off is not tested yet.
+
 ## OpenVR binding (`OpenVrApi`)
 
 LWJGL's OpenVR bindings (last release 3.3.6, which Vivecraft bundles) don't load on LWJGL 3.4 (Minecraft 26.2):

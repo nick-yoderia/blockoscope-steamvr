@@ -45,6 +45,13 @@ final class OpenVrApi {
     static final int PROP_DISPLAY_FREQUENCY = 2002;
     static final int MAX_DEVICES = 64;
     static final int HMD_INDEX = 0;
+    /**
+     * EDeviceActivityLevel: someone is using the device (for a headset, its proximity sensor sees a face), or did
+     * moments ago; the device has been idle long enough to go to sleep (SteamVR's power settings).
+     */
+    static final int ACTIVITY_USER_INTERACTION = 1;
+    static final int ACTIVITY_USER_INTERACTION_TIMEOUT = 2;
+    static final int ACTIVITY_STANDBY = 3;
 
     /** sizeof(VREvent_t), sizeof(TrackedDevicePose_t) and the pose's bPoseIsValid offset on 64-bit Windows. */
     static final int EVENT_SIZE = 64;
@@ -61,11 +68,14 @@ final class OpenVrApi {
     private static final int OVERLAY_SET_TEXTURE_BOUNDS = 29;
     private static final int OVERLAY_SET_TRANSFORM_ABSOLUTE = 32;
     private static final int OVERLAY_SHOW = 41;
+    private static final int OVERLAY_HIDE = 42;
     private static final int OVERLAY_WAIT_FRAME_SYNC = 45;
     private static final int OVERLAY_SET_TEXTURE = 58;
     private static final int SYSTEM_GET_RECOMMENDED_SIZE = 0;
     private static final int SYSTEM_GET_PROJECTION_RAW = 2;
     private static final int SYSTEM_GET_POSES = 11;
+    private static final int SYSTEM_GET_ACTIVITY_LEVEL = 15;
+    private static final int SYSTEM_IS_DEVICE_CONNECTED = 20;
     private static final int SYSTEM_GET_FLOAT_PROPERTY = 22;
     private static final int SYSTEM_POLL_EVENT = 29;
     private static final int SYSTEM_ACKNOWLEDGE_QUIT = 43;
@@ -89,6 +99,9 @@ final class OpenVrApi {
     private static MethodHandle setOverlayTextureBounds;
     private static MethodHandle setOverlayTransformAbsolute;
     private static MethodHandle showOverlay;
+    private static MethodHandle hideOverlay;
+    private static MethodHandle getActivityLevel;
+    private static MethodHandle isDeviceConnected;
     private static MethodHandle setOverlayTexture;
     private static MethodHandle waitFrameSync;
     private static MethodHandle getFloatProperty;
@@ -204,6 +217,9 @@ final class OpenVrApi {
             setOverlayTransformAbsolute = slot(overlay, OVERLAY_SET_TRANSFORM_ABSOLUTE,
                 FunctionDescriptor.of(JAVA_INT, JAVA_LONG, JAVA_INT, ADDRESS));
             showOverlay = slot(overlay, OVERLAY_SHOW, FunctionDescriptor.of(JAVA_INT, JAVA_LONG));
+            hideOverlay = slot(overlay, OVERLAY_HIDE, FunctionDescriptor.of(JAVA_INT, JAVA_LONG));
+            getActivityLevel = slot(system, SYSTEM_GET_ACTIVITY_LEVEL, FunctionDescriptor.of(JAVA_INT, JAVA_INT));
+            isDeviceConnected = slot(system, SYSTEM_IS_DEVICE_CONNECTED, FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT));
             setOverlayTexture = slot(overlay, OVERLAY_SET_TEXTURE, FunctionDescriptor.of(JAVA_INT, JAVA_LONG, ADDRESS));
             waitFrameSync = slot(overlay, OVERLAY_WAIT_FRAME_SYNC, FunctionDescriptor.of(JAVA_INT, JAVA_INT));
             getFloatProperty = slot(system, SYSTEM_GET_FLOAT_PROPERTY, FunctionDescriptor.of(JAVA_FLOAT, JAVA_INT, JAVA_INT, ADDRESS));
@@ -284,6 +300,24 @@ final class OpenVrApi {
 
     static int showOverlay(long overlay) throws Throwable {
         return (int) showOverlay.invokeExact(overlay);
+    }
+
+    static int hideOverlay(long overlay) throws Throwable {
+        return (int) hideOverlay.invokeExact(overlay);
+    }
+
+    /**
+     * True while a headset is connected and awake, and with {@code worn}, on someone's head (what Vivecraft's hot
+     * switching checks): SteamVR can run with no headset at all (or one switched off, asleep or lying on the desk),
+     * and then the game should look like normal Minecraft on the monitor.
+     */
+    static boolean headsetInUse(boolean worn) throws Throwable {
+        if (!(boolean) isDeviceConnected.invokeExact(HMD_INDEX)) {
+            return false;
+        }
+        int level = (int) getActivityLevel.invokeExact(HMD_INDEX);
+        return worn ? level == ACTIVITY_USER_INTERACTION || level == ACTIVITY_USER_INTERACTION_TIMEOUT
+            : level != ACTIVITY_STANDBY;
     }
 
     /** Texture_t: the texture handle (8 bytes), its type and its colour space (4 bytes each). */

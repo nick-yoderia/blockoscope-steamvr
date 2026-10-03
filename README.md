@@ -29,7 +29,8 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
   with depth strength 100% the world is life-size, as if looking through a window, with no stretching towards the
   edges. Either the screen grows to your FOV setting, or your FOV follows the screen's width and distance.
 - **Automatic, and safe to share:** with 3D on Auto (the default) the game is plain Minecraft until SteamVR is
-  running, then the screen appears; quit SteamVR and it's plain Minecraft again. Friends playing the same mod pack on a
+  running with a headset connected, then the screen appears; quit SteamVR, unplug the headset or (by default) just
+  take it off your head, and it's plain Minecraft on the monitor again. Friends playing the same mod pack on a
   monitor don't have to change anything. A "3D: Auto / On / Off" button sits in the top left of Minecraft's Options
   screen; On also shows half side-by-side 3D in the window without SteamVR. The mod never starts SteamVR itself.
 - **Live screen adjustment:** while the settings are open, the screen moves and reshapes as you drag its size,
@@ -75,6 +76,7 @@ copied from Blockoscope SBS / Parallax Theater, if present):
 | `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
 | `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen (height follows the window); `0` = automatic (1.5x what the headset shows, rounded so the HUD lands on whole pixels) |
 | `syncToHeadset` | `true` | One game frame per headset refresh while the SteamVR screen is on |
+| `headsetOffTo2D` | `true` | Back to normal 2D while the headset is off your head (proximity sensor), like Vivecraft's hot switching; `false` = only when it is disconnected or asleep |
 | `screenSize` | `custom` | `custom`; `true_scale` (the screen grows to the game's FOV) or `match_fov` (the game's FOV follows the screen): both life-size, focused at the screen |
 | `floatingWindow` | `true` | Blank a thin strip at each eye's outer edge so the screen edges float at the held item's depth |
 | `screenWidth` | `2.6` | Screen width in metres (`custom` and `match_fov`) |

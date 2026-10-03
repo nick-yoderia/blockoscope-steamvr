@@ -32,6 +32,17 @@ public final class VrScreen {
     private static volatile boolean connecting;
     private static volatile boolean connected;
     private static boolean placed;
+    /**
+     * Whether a headset is connected and awake (see {@link OpenVrApi#headsetInUse}). Being connected to SteamVR is not
+     * enough: plenty of people leave SteamVR running, or start it, without the headset, and then want plain Minecraft.
+     * Checked twice a second; a change counts after it has lasted {@link #HEADSET_SETTLE_NANOS}.
+     */
+    private static boolean headsetPresent;
+    private static boolean headsetSeen;
+    private static long headsetCheckNanos;
+    private static long headsetChangeSinceNanos;
+    private static final long HEADSET_CHECK_NANOS = 500_000_000L;
+    private static final long HEADSET_SETTLE_NANOS = 1_000_000_000L;
     /** Headset pixels per unit of tan(angle), for the automatic eye resolution (0 = unknown). */
     private static float pixelsPerTangent;
     /** Headset refresh rate (0 = unknown) and the frame pacing state (see {@link #pace}). */
@@ -75,9 +86,12 @@ public final class VrScreen {
 
     private VrScreen() {}
 
-    /** True while the screen is up in SteamVR (the eyes are then rendered for it rather than for the window). */
+    /**
+     * True while the screen is up in SteamVR: connected, with a headset in use (the eyes are then rendered for it
+     * rather than for the window).
+     */
     public static boolean active() {
-        return started;
+        return started && headsetPresent;
     }
 
     /**
@@ -158,6 +172,10 @@ public final class VrScreen {
             if (!started) {
                 return;
             }
+            updateHeadset();
+            if (!headsetPresent) {
+                return;
+            }
             applyShape();
             if (StereoConfig.screenDistance() != appliedDistance || StereoConfig.screenHeight() != appliedHeight) {
                 // Distance or height changed in the settings: move the screen along the same line, keeping its heading.
@@ -170,6 +188,51 @@ public final class VrScreen {
         } catch (Throwable t) {
             logOnce("SteamVR screen error: " + t);
             stop("error");
+        }
+    }
+
+    /**
+     * Shows the screen when a headset comes into use and hides it (back to the normal window) when it goes, e.g.
+     * unplugged, switched off or asleep on the desk, or (headsetOffTo2D, like Vivecraft's hot switching) taken off. The first check counts at once; later changes only once they
+     * have lasted a moment, so a hiccup doesn't flip the game between 3D and 2D.
+     */
+    private static void updateHeadset() throws Throwable {
+        long now = System.nanoTime();
+        if (headsetSeen && now - headsetCheckNanos < HEADSET_CHECK_NANOS) {
+            return;
+        }
+        headsetCheckNanos = now;
+        boolean inUse = OpenVrApi.headsetInUse(StereoConfig.headsetOffTo2D());
+        if (inUse == headsetPresent) {
+            headsetChangeSinceNanos = 0L;
+            headsetSeen = true;
+            return;
+        }
+        if (headsetSeen) {
+            if (headsetChangeSinceNanos == 0L) {
+                headsetChangeSinceNanos = now;
+                return;
+            }
+            if (now - headsetChangeSinceNanos < HEADSET_SETTLE_NANOS) {
+                return;
+            }
+        }
+        headsetSeen = true;
+        headsetChangeSinceNanos = 0L;
+        headsetPresent = inUse;
+        if (inUse) {
+            // SteamVR's numbers can be missing while no headset is connected.
+            pixelsPerTangent = OpenVrApi.pixelsPerTangent();
+            displayHz = OpenVrApi.displayFrequency();
+            frameStartNanos = 0L;
+            placed = false;
+            anchored = false;
+            OpenVrApi.showOverlay(overlay);
+            System.out.println("[Blockoscope SteamVR] Headset in use: SteamVR screen shown (" + Math.round(pixelsPerTangent)
+                + " headset pixels per tangent; eyes render " + eyeResolution() + " wide; headset " + Math.round(displayHz) + " Hz)");
+        } else {
+            OpenVrApi.hideOverlay(overlay);
+            System.out.println("[Blockoscope SteamVR] No headset in use: SteamVR screen hidden, normal window");
         }
     }
 
@@ -235,12 +298,10 @@ public final class VrScreen {
             placed = false;
             anchored = false;
             lastError = "";
-            pixelsPerTangent = OpenVrApi.pixelsPerTangent();
-            displayHz = OpenVrApi.displayFrequency();
-            frameStartNanos = 0L;
-            OpenVrApi.showOverlay(overlay);
-            System.out.println("[Blockoscope SteamVR] SteamVR screen started (" + Math.round(pixelsPerTangent)
-                + " headset pixels per tangent; eyes render " + eyeResolution() + " wide; headset " + Math.round(displayHz) + " Hz)");
+            headsetPresent = false;
+            headsetSeen = false;
+            System.out.println("[Blockoscope SteamVR] Connected to SteamVR");
+            // Shown by updateHeadset once a headset is in use.
         } catch (Throwable t) {
             logOnce("SteamVR screen could not be shown: " + t);
             stop("error");
@@ -338,7 +399,7 @@ public final class VrScreen {
 
     /** Hands the packed eyes (left eye in the left half) to SteamVR. */
     public static void submit(RenderTarget packed) {
-        if (!started) {
+        if (!active()) {
             return;
         }
         GpuTexture color = packed.getColorTexture();
@@ -450,6 +511,7 @@ public final class VrScreen {
             return;
         }
         started = false;
+        headsetPresent = false;
         try {
             if (overlay != 0L) {
                 OpenVrApi.destroyOverlay(overlay);
