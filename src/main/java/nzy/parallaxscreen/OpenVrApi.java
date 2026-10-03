@@ -33,6 +33,7 @@ final class OpenVrApi {
     static final String OVERLAY_VERSION = "IVROverlay_027";
 
     static final int APPLICATION_OVERLAY = 2;
+    static final int TEXTURE_DIRECTX = 0;
     static final int TEXTURE_OPENGL = 1;
     static final int COLOR_SPACE_AUTO = 0;
     static final int OVERLAY_FLAG_SIDE_BY_SIDE_PARALLEL = 1 << 10;

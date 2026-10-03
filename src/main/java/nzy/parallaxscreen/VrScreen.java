@@ -17,8 +17,8 @@ import static java.lang.foreign.ValueLayout.JAVA_LONG;
  *
  * Minecraft runs as an OpenVR overlay application, not a VR game: SteamVR keeps drawing its own scene (SteamVR Home or
  * the void) and composites the screen into it at the headset's frame rate, so head movement stays smooth whatever the
- * game's frame rate is. The packed texture (left eye in the left half) is handed over by its OpenGL id every frame;
- * SteamVR copies it on the GPU, so nothing is read back to the CPU.
+ * game's frame rate is. The packed texture (left eye in the left half) is copied on the GPU into a Direct3D 11 texture
+ * that SteamVR takes every frame ({@link D3dShare}), so nothing is read back to the CPU.
  */
 public final class VrScreen {
     private static final String OVERLAY_KEY = "nzy.parallaxscreen.screen";
@@ -39,6 +39,7 @@ public final class VrScreen {
     private static boolean recenterRequested;
     private static volatile String lastError = "";
     private static boolean warnedNotOpenGl;
+    private static boolean warnedNoDirect3d;
     private static boolean shutdownHookAdded;
     private static float appliedWidth = Float.NaN;
     private static float appliedCurvature = Float.NaN;
@@ -276,10 +277,18 @@ public final class VrScreen {
             return;
         }
         try {
-            boolean flip = StereoConfig.flipScreen();
+            // Preferably as a Direct3D 11 texture (see D3dShare); the OpenGL texture itself if that isn't possible.
+            MemorySegment shared = D3dShare.frame(gl.glId(), packed.width, packed.height);
+            boolean direct3d = shared.address() != 0L;
+            if (!direct3d && D3dShare.failure() != null && !warnedNoDirect3d) {
+                warnedNoDirect3d = true;
+                System.out.println("[Parallax Screen] Handing SteamVR the OpenGL texture (Direct3D 11 sharing: "
+                    + D3dShare.failure() + ")");
+            }
+            // SteamVR accounts for OpenGL's bottom-up rows itself (Vivecraft submits Minecraft's GL eye textures with
+            // plain 0..1 bounds); the D3D11 copy arrives upside down. The setting flips it once more.
+            boolean flip = StereoConfig.flipScreen() ^ (direct3d && D3dShare.FLIPPED);
             if (!boundsSet || flip != appliedFlip) {
-                // SteamVR accounts for OpenGL's bottom-up rows itself (Vivecraft submits Minecraft's GL eye textures
-                // with plain 0..1 bounds); the setting flips it in case a SteamVR version doesn't.
                 boundsSet = true;
                 appliedFlip = flip;
                 BOUNDS.setAtIndex(JAVA_FLOAT, 0, 0f);
@@ -288,8 +297,8 @@ public final class VrScreen {
                 BOUNDS.setAtIndex(JAVA_FLOAT, 3, flip ? 0f : 1f);
                 OpenVrApi.setOverlayTextureBounds(overlay, BOUNDS);
             }
-            TEXTURE.set(JAVA_LONG, 0, gl.glId());
-            TEXTURE.set(JAVA_INT, 8, OpenVrApi.TEXTURE_OPENGL);
+            TEXTURE.set(JAVA_LONG, 0, direct3d ? shared.address() : gl.glId());
+            TEXTURE.set(JAVA_INT, 8, direct3d ? OpenVrApi.TEXTURE_DIRECTX : OpenVrApi.TEXTURE_OPENGL);
             TEXTURE.set(JAVA_INT, 12, OpenVrApi.COLOR_SPACE_AUTO);
             int result = OpenVrApi.setOverlayTexture(overlay, TEXTURE);
             if (result != 0) {
