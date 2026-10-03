@@ -81,21 +81,45 @@ public final class VrScreen {
     }
 
     /**
-     * Width each eye renders at for the screen. Automatic (the setting at 0): as many pixels as the headset shows across
-     * the screen, from SteamVR's render size and field of view and the screen's size and distance, so the picture is
-     * as sharp as the headset can show and no sharper (rounded to 16, 640 to 4096). Without SteamVR's numbers, 1920.
+     * How much finer than the headset's own pixels the automatic eye resolution renders. The compositor resamples the
+     * screen onto the curved lens image, and bilinear sampling at 1:1 loses about a third of the sharpness; Blockoscope
+     * SBS in Bigscreen (half of a 3440x1440 window per eye, 1720x1440) had well over twice the pixels of 0.2.0's 1:1
+     * auto setting (1536x643 for a 3.6 m screen at 2 m) and the user found it sharper.
      */
-    public static int eyeResolution() {
+    private static final double AUTO_SUPERSAMPLE = 1.5;
+    private static final int MAX_EYE_WIDTH = 4096;
+
+    /**
+     * Height each eye renders at for the screen, for a window of the given size (the eyes keep the window's shape).
+     * With the setting, the set width over the window's aspect. Automatic (the setting at 0): {@link #AUTO_SUPERSAMPLE}
+     * times as many pixels as the headset shows across the screen (from SteamVR's render size and field of view and
+     * the screen's size and distance), rounded to a whole number of pixels per GUI pixel, so the HUD and its pixel font
+     * stay crisp when drawn into the eyes (at 1.8 screen pixels per GUI pixel the letters came out uneven and blurred).
+     * Without SteamVR's numbers, 1920 wide.
+     */
+    public static int eyeHeight(int windowWidth, int windowHeight) {
+        double aspect = windowWidth > 0 && windowHeight > 0 ? (double) windowWidth / windowHeight : 16.0 / 9.0;
         int setting = StereoConfig.eyeResolution();
         if (setting > 0) {
-            return setting;
+            return Math.max(1, (int) Math.round(setting / aspect));
         }
-        if (pixelsPerTangent <= 0f) {
-            return 1920;
+        double wanted = pixelsPerTangent > 0f
+            ? pixelsPerTangent * StereoRenderer.screenWidth() / StereoConfig.screenDistance() * AUTO_SUPERSAMPLE
+            : 1920;
+        int guiScale = Math.max(1, net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScale());
+        double guiHeight = (double) windowHeight / guiScale;
+        int perGuiPixel = (int) Math.max(1, Math.round(wanted / aspect / guiHeight));
+        while (perGuiPixel > 1 && perGuiPixel * guiHeight * aspect > MAX_EYE_WIDTH) {
+            perGuiPixel--;
         }
-        float width = StereoRenderer.screenWidth();
-        float pixels = pixelsPerTangent * width / StereoConfig.screenDistance();
-        return Math.max(640, Math.min(4096, Math.round(pixels / 16f) * 16));
+        return Math.max(1, (int) Math.round(perGuiPixel * guiHeight));
+    }
+
+    /** Width each eye renders at for the screen with the game window's current shape (for the settings and log). */
+    public static int eyeResolution() {
+        com.mojang.blaze3d.platform.Window window = net.minecraft.client.Minecraft.getInstance().getWindow();
+        int height = eyeHeight(window.getWidth(), window.getHeight());
+        return window.getHeight() > 0 ? (int) Math.round((double) height * window.getWidth() / window.getHeight()) : height;
     }
 
     /** Asks for the screen to be placed in front of the headset again, along where it now faces (F8). */

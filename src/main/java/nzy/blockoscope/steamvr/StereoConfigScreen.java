@@ -79,7 +79,8 @@ public final class StereoConfigScreen {
                 StereoConfig.eyeResolution() <= 0 ? 9 : StereoConfig.eyeResolution() / 64, 9, 64)
             .setDefaultValue(9)
             .setTextGetter(value -> Component.literal(value <= 9 ? "Auto (" + VrScreen.eyeResolution() + " px)" : value * 64 + " px wide"))
-            .setTooltip(Component.literal("Per eye. Auto = what the headset shows."))
+            .setTooltip(Component.literal("Per eye. Auto = 1.5x what the headset shows,"),
+                Component.literal("rounded so the HUD stays sharp."))
             .setSaveConsumer(value -> StereoConfig.setEyeResolution(value <= 9 ? 0 : value * 64))
             .build());
 
@@ -104,12 +105,12 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setScreenSize)
             .build());
 
-        screen.addEntry(entries.startIntSlider(Component.literal("Edge correction"), StereoConfig.edgeCorrection(), 0, 100)
-            .setDefaultValue(0)
-            .setTextGetter(value -> Component.literal(value == 0 ? "Off" : value + "%"))
-            .setTooltip(Component.literal("Keeps a wide FOV without stretched edges."),
-                Component.literal("Crops a little at the top and bottom."))
-            .setSaveConsumer(StereoConfig::setEdgeCorrection)
+        screen.addEntry(entries.startBooleanToggle(Component.literal("Floating edges"), StereoConfig.floatingWindow())
+            .setDefaultValue(true)
+            .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off"))
+            .setTooltip(Component.literal("Screen edges float at your held item's depth,"),
+                Component.literal("so it isn't cut off by an edge behind it."))
+            .setSaveConsumer(StereoConfig::setFloatingWindow)
             .build());
 
         screen.addEntry(entries.startIntSlider(Component.literal("Screen width"),

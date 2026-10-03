@@ -67,10 +67,10 @@ copied from Blockoscope SBS / Parallax Theater, if present):
 |---|---|---|
 | `enabled` | `true` | 3D on (F9 toggles it) |
 | `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
-| `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen; `0` = automatic (what the headset shows) |
+| `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen (height follows the window); `0` = automatic (1.5x what the headset shows, rounded so the HUD lands on whole pixels) |
 | `syncToHeadset` | `true` | One game frame per headset refresh while the SteamVR screen is on |
 | `screenSize` | `custom` | `custom`; `true_scale` (the screen grows to the game's FOV) or `match_fov` (the game's FOV follows the screen): both life-size, focused at the screen |
-| `edgeCorrection` | `0` | Squeezes the stretched edges of a wide FOV back in (Panini projection), % (HUD and menus are not bent) |
+| `floatingWindow` | `true` | Blank a thin strip at each eye's outer edge so the screen edges float at the held item's depth |
 | `screenWidth` | `2.6` | Screen width in metres (`custom` and `match_fov`) |
 | `screenDistance` | `2.0` | Metres from your head to the screen, applied when it is placed or recentered (F8) |
 | `screenHeight` | `0` | Metres above (or below) your eyes |

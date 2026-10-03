@@ -62,10 +62,10 @@ public final class StereoConfig {
         "warpPercent: strength of the nausea and portal warp, as a % of vanilla's (on top of Distortion Effects)",
         "swapEyes: put the right eye on the left half (for viewers that expect cross-eyed order)",
         "steamVrScreen: show the game on a screen in SteamVR (false = half side-by-side in the window)",
-        "eyeResolution: width in pixels each eye renders at for the SteamVR screen (height follows the window's shape); 0 = automatic, as many as the headset shows across the screen",
+        "eyeResolution: width in pixels each eye renders at for the SteamVR screen (height follows the window's shape); 0 = automatic, 1.5x as many as the headset shows across the screen, rounded so the HUD lands on whole pixels",
         "syncToHeadset: one game frame per headset refresh while the SteamVR screen is on (smooth motion; runs free when the game can't keep up)",
         "screenSize: custom (screenWidth, the game's FOV), true_scale (the screen grows to the game's FOV) or match_fov (the game's FOV shrinks to the screen); both life-size modes focus at the screen and ignore focusDistance",
-        "edgeCorrection: squeezes the stretched edges of a wide field of view back in (Panini projection), in % (0 = off, 100 = full); the HUD and menus are not bent",
+        "floatingWindow: blank a thin strip at the outer edge of each eye so the screen's edges float in front, at the held item's depth (no item cut off by an edge behind it)",
         "screenWidth: width of the SteamVR screen in metres",
         "screenDistance: metres from your head (where it was at the last recenter, F8) to the SteamVR screen",
         "screenHeight: metres the SteamVR screen sits above (or below) your eyes",
@@ -93,7 +93,7 @@ public final class StereoConfig {
     private static int eyeResolution = 0;
     private static boolean syncToHeadset = true;
     private static ScreenSize screenSize = ScreenSize.CUSTOM;
-    private static int edgeCorrection = 0;
+    private static boolean floatingWindow = true;
     private static float screenWidth = 2.6f;
     private static float screenDistance = 2.0f;
     private static float screenHeight = 0f;
@@ -131,7 +131,7 @@ public final class StereoConfig {
     public static ScreenSize screenSize() { return screenSize; }
     /** True in either life-size mode: the screen covers exactly the game's field of view and is the focus distance. */
     public static boolean lifeSize() { return screenSize != ScreenSize.CUSTOM; }
-    public static int edgeCorrection() { return edgeCorrection; }
+    public static boolean floatingWindow() { return floatingWindow; }
     public static float screenWidth() { return screenWidth; }
     public static float screenDistance() { return screenDistance; }
     public static float screenHeight() { return screenHeight; }
@@ -163,7 +163,7 @@ public final class StereoConfig {
     public static void setSyncToHeadset(boolean value) { syncToHeadset = value; }
     public static void setEyeResolution(int value) { eyeResolution = value <= 0 ? 0 : Math.max(640, Math.min(4096, value)); }
     public static void setScreenSize(ScreenSize value) { screenSize = value == null ? ScreenSize.CUSTOM : value; }
-    public static void setEdgeCorrection(int value) { edgeCorrection = Math.max(0, Math.min(100, value)); }
+    public static void setFloatingWindow(boolean value) { floatingWindow = value; }
     public static void setScreenWidth(float value) { screenWidth = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenDistance(float value) { screenDistance = Math.max(0.5f, Math.min(20f, value)); }
     public static void setScreenHeight(float value) { screenHeight = Math.max(-3f, Math.min(3f, value)); }
@@ -214,7 +214,7 @@ public final class StereoConfig {
         ScreenSize oldSize = parseBoolean(props.getProperty("trueScale"), false) ? ScreenSize.TRUE_SCALE : ScreenSize.CUSTOM;
         screenSize = parseEnum(ScreenSize.class, props.getProperty("screenSize"), oldSize);
         syncToHeadset = parseBoolean(props.getProperty("syncToHeadset"), true);
-        setEdgeCorrection((int) Math.round(parseDouble(props.getProperty("edgeCorrection"), 0)));
+        floatingWindow = parseBoolean(props.getProperty("floatingWindow"), true);
         setScreenWidth((float) parseDouble(props.getProperty("screenWidth"), 2.6));
         setScreenDistance((float) parseDouble(props.getProperty("screenDistance"), 2.0));
         setScreenHeight((float) parseDouble(props.getProperty("screenHeight"), 0));
@@ -249,7 +249,7 @@ public final class StereoConfig {
         out.setProperty("eyeResolution", String.valueOf(eyeResolution));
         out.setProperty("screenSize", screenSize.name().toLowerCase(java.util.Locale.ROOT));
         out.setProperty("syncToHeadset", String.valueOf(syncToHeadset));
-        out.setProperty("edgeCorrection", String.valueOf(edgeCorrection));
+        out.setProperty("floatingWindow", String.valueOf(floatingWindow));
         out.setProperty("screenWidth", String.valueOf(screenWidth));
         out.setProperty("screenDistance", String.valueOf(screenDistance));
         out.setProperty("screenHeight", String.valueOf(screenHeight));

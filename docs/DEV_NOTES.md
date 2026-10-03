@@ -7,9 +7,9 @@ Blockoscope SBS (this repo started from its 0.1.5-alpha); version history before
 ## SteamVR screen (what Blockoscope SteamVR adds)
 
 Output: `StereoRenderer.render` asks `VrScreen.active()`. When the SteamVR screen is up, each eye target is
-`VrScreen.eyeResolution()` wide in the window's aspect (setting, or automatic: SteamVR's recommended render width over
+`VrScreen.eyeHeight()` high in the window's aspect (setting, or automatic: SteamVR's recommended render width over
 the eye's tangent span (`GetRecommendedRenderTargetSize`, `GetProjectionRaw`) times screen width / distance, i.e. the
-headset pixels across the screen at the centre of view; the null driver gives 926 px per tangent, 1200 px for 2.6 m at
+headset pixels across the screen at the centre of view, x1.5 and rounded to whole pixels per GUI pixel, see below; the null driver gives 926 px per tangent, 1200 px for 2.6 m at
 2 m) (so the projection and the GUI layout, which follow the window, still
 fit), and the eyes are packed into `screenTarget` (2 x eye width); the GUI-over-window pass draws into it (`packedWidth`
 /`packedHeight` drive `guiArea*`), `VrScreen.submit` hands it to the overlay (through `D3dShare`), and the window gets a preview
@@ -36,15 +36,21 @@ the user saw HUD and held item "distorted towards the edge" with FOV 90 on the d
 renders ~120 degrees across into 66 degrees of view, stretching the edges. Hand depth default lowered to 50% at the
 same time (the held tool at the screen's edge stuck far out in front of the frame).
 The user tried `match_fov` in the headset and disliked it (with the 21:9 window, 2.6 m at 2 m is ~30 degrees
-vertical): they want a wide, unrealistic FOV without the stretched edges. Hence edge correction (`edgeCorrection`,
-0.2.1): `EyeBlit` blits each eye through `eye_panini.fsh`, a Panini projection with distance d = setting/100, using
-the eye projection's own tangents (1/m00, 1/m11, so sprinting is followed) from a 16-byte UBO (`MappableRingBuffer`,
-rotated per frame). The full width stays; corners map to corners, the top/bottom middle is cropped a little. Only when
-the GUI is drawn over the packed target (`guiOverWindow`): a menu inside the eye targets would be bent and clicks
-would miss. Opening such a menu therefore switches the world behind it back to rectilinear. Verified in the window
-(SBS) at 100%: no black areas, hand and edges pulled in, near horizontal edges bow visibly on 21:9; user set to 60%.
-Blockoscope SBS renders exactly the same way; it only looked better because Bigscreen's screen covered more of
-the view.
+vertical): they want a wide, unrealistic FOV without the stretched edges. Edge correction (a Panini projection in the eye blit,
+tried in 0.2.1 development) did nothing visible for the user in the headset and was removed. Blockoscope SBS renders
+exactly the same way; it only looked better in Bigscreen because that screen covered more of the view.
+
+Floating window (`floatingWindow`, 0.2.1, `StereoRenderer.floatingWindowPixels`, scissor in `EyeBlit.draw`): the
+"disconnect" at the screen edges is most likely a window violation: the held item sits in front of the screen and
+the frame (at screen depth) cuts it differently in each eye. The left eye's left strip and the right eye's right strip
+stay black, sized to the held item's disparity (0.72 m + hand reach, hand FOV 70, hand depth): the frame edges then
+float at the item's depth. 28 px per eye at 2580 px, hand depth 50%, focus 4 m. The HUD is drawn afterwards, unmasked.
+
+Eye resolution (0.2.1, `VrScreen.eyeHeight`): Auto renders 1.5x the headset's pixel density at the screen, rounded to
+a whole number of eye pixels per GUI pixel (eye height = n x window height / GUI scale). 0.2.0's 1:1 auto gave
+1536x643 per eye for the user's 3.6 m screen at 2 m on a 21:9 window, with the HUD at 1.8 px per GUI pixel; the user
+found it less sharp than Blockoscope SBS in Bigscreen (1720x1440 per eye). Now 2580x1080 (3 px per GUI pixel),
+~133 FPS with BSL + Voxy on the RX 9070 XT.
 
 Connecting (`VrScreen.connect`, daemon thread, every 5 s while not connected): only when `vrserver.exe` is running
 (`ProcessHandle`), so the mod never launches SteamVR (initialising an overlay app would), and quitting SteamVR
@@ -236,8 +242,7 @@ screen at 1920 per eye (3840x1080 texture) and the null-driver compositor runnin
 
 ## Open items
 
-- Headset check of edge correction (60%) and whether the HUD scene depth (rays through the rectilinear
-  picture) still matches what is behind the bent hotbar area.
+- Headset check of the floating window and the 1.5x auto resolution.
 - Headset check of the SteamVR screen in the Steam Frame: placement and F8, sharpness, comfort of the default size
   (2.6 m at 2 m). Orientation and eye order are verified in the null headset's compositor.
 - D3D11 device on the default adapter: on a multi-GPU PC where the game runs on another GPU, the interop fails and
