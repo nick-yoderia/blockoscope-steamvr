@@ -74,11 +74,13 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setSteamVrScreen)
             .build());
 
-        screen.addEntry(entries.startIntSlider(Component.literal("Eye resolution"), StereoConfig.eyeResolution() / 64, 10, 64)
-            .setDefaultValue(30)
-            .setTextGetter(value -> Component.literal(value * 64 + " px wide"))
-            .setTooltip(Component.literal("Per eye. Higher = sharper, slower."))
-            .setSaveConsumer(value -> StereoConfig.setEyeResolution(value * 64))
+        // 9 = automatic; 10..64 = 640..4096 pixels.
+        screen.addEntry(entries.startIntSlider(Component.literal("Eye resolution"),
+                StereoConfig.eyeResolution() <= 0 ? 9 : StereoConfig.eyeResolution() / 64, 9, 64)
+            .setDefaultValue(9)
+            .setTextGetter(value -> Component.literal(value <= 9 ? "Auto (" + VrScreen.eyeResolution() + " px)" : value * 64 + " px wide"))
+            .setTooltip(Component.literal("Per eye. Auto = what the headset shows."))
+            .setSaveConsumer(value -> StereoConfig.setEyeResolution(value <= 9 ? 0 : value * 64))
             .build());
 
         screen.addEntry(entries.startBooleanToggle(Component.literal("Screen size"), StereoConfig.trueScale())

@@ -32,6 +32,8 @@ public final class VrScreen {
     private static volatile boolean connecting;
     private static volatile boolean connected;
     private static boolean placed;
+    /** Headset pixels per unit of tan(angle), for the automatic eye resolution (0 = unknown). */
+    private static float pixelsPerTangent;
     /** Tracking space the screen was placed in (seated, or standing when there is no seated origin). */
     private static int universe = OpenVrApi.UNIVERSE_SEATED;
     private static boolean recenterRequested;
@@ -56,6 +58,24 @@ public final class VrScreen {
     /** True while the screen is up in SteamVR (the eyes are then rendered for it rather than for the window). */
     public static boolean active() {
         return started;
+    }
+
+    /**
+     * Width each eye renders at for the screen. Automatic (the setting at 0): as many pixels as the headset shows across
+     * the screen, from SteamVR's render size and field of view and the screen's size and distance, so the picture is
+     * as sharp as the headset can show and no sharper (rounded to 16, 640 to 4096). Without SteamVR's numbers, 1920.
+     */
+    public static int eyeResolution() {
+        int setting = StereoConfig.eyeResolution();
+        if (setting > 0) {
+            return setting;
+        }
+        if (pixelsPerTangent <= 0f) {
+            return 1920;
+        }
+        float width = StereoConfig.trueScale() ? StereoRenderer.trueScaleScreenWidth() : StereoConfig.screenWidth();
+        float pixels = pixelsPerTangent * width / StereoConfig.screenDistance();
+        return Math.max(640, Math.min(4096, Math.round(pixels / 16f) * 16));
     }
 
     /** Asks for the screen to be placed in front of the headset again (key or setting change). */
@@ -164,8 +184,10 @@ public final class VrScreen {
             }
             placed = false;
             lastError = "";
+            pixelsPerTangent = OpenVrApi.pixelsPerTangent();
             OpenVrApi.showOverlay(overlay);
-            System.out.println("[Parallax Screen] SteamVR screen started");
+            System.out.println("[Parallax Screen] SteamVR screen started (" + Math.round(pixelsPerTangent)
+                + " headset pixels per tangent; eyes render " + eyeResolution() + " wide)");
         } catch (Throwable t) {
             logOnce("SteamVR screen could not be shown: " + t);
             stop("error");

@@ -13,8 +13,9 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 
 ## Features
 
-- **Full resolution per eye:** each eye renders at the eye resolution you choose (default 1920 pixels wide, in the
-  window's shape), independent of your monitor.
+- **Full resolution per eye:** each eye renders, in the window's shape, at as many pixels as your headset shows across
+  the screen (worked out from SteamVR's render size and field of view and the screen's size and distance), or at a
+  width you choose. Independent of your monitor.
 - **SteamVR screen:** an OpenVR overlay in SteamVR Home or the void, with adjustable size, distance, height and curve.
   SteamVR draws it at the headset's refresh rate, so head movement stays smooth whatever the game's frame rate is.
   **F8** puts it straight in front of you again.
@@ -58,7 +59,7 @@ stored in `config/parallax-screen.properties` (copied from Parallax Theater's se
 |---|---|---|
 | `enabled` | `true` | 3D on (F9 toggles it) |
 | `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
-| `eyeResolution` | `1920` | Width in pixels each eye renders at for the SteamVR screen |
+| `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen; `0` = automatic (what the headset shows) |
 | `trueScale` | `false` | Size the screen to the game's field of view and focus at the screen (life-size world) |
 | `screenWidth` | `2.6` | Screen width in metres (when not true scale) |
 | `screenDistance` | `2.0` | Metres from your head to the screen, applied when it is placed or recentered (F8) |

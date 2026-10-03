@@ -60,6 +60,8 @@ final class OpenVrApi {
     private static final int OVERLAY_SET_TRANSFORM_ABSOLUTE = 32;
     private static final int OVERLAY_SHOW = 41;
     private static final int OVERLAY_SET_TEXTURE = 58;
+    private static final int SYSTEM_GET_RECOMMENDED_SIZE = 0;
+    private static final int SYSTEM_GET_PROJECTION_RAW = 2;
     private static final int SYSTEM_GET_POSES = 11;
     private static final int SYSTEM_POLL_EVENT = 29;
     private static final int SYSTEM_ACKNOWLEDGE_QUIT = 43;
@@ -85,6 +87,8 @@ final class OpenVrApi {
     private static MethodHandle showOverlay;
     private static MethodHandle setOverlayTexture;
     private static MethodHandle getPoses;
+    private static MethodHandle getRecommendedSize;
+    private static MethodHandle getProjectionRaw;
     private static MethodHandle pollEvent;
     private static MethodHandle acknowledgeQuit;
 
@@ -196,6 +200,9 @@ final class OpenVrApi {
             showOverlay = slot(overlay, OVERLAY_SHOW, FunctionDescriptor.of(JAVA_INT, JAVA_LONG));
             setOverlayTexture = slot(overlay, OVERLAY_SET_TEXTURE, FunctionDescriptor.of(JAVA_INT, JAVA_LONG, ADDRESS));
             getPoses = slot(system, SYSTEM_GET_POSES, FunctionDescriptor.ofVoid(JAVA_INT, JAVA_FLOAT, ADDRESS, JAVA_INT));
+            getRecommendedSize = slot(system, SYSTEM_GET_RECOMMENDED_SIZE, FunctionDescriptor.ofVoid(ADDRESS, ADDRESS));
+            getProjectionRaw = slot(system, SYSTEM_GET_PROJECTION_RAW,
+                FunctionDescriptor.ofVoid(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
             pollEvent = slot(system, SYSTEM_POLL_EVENT, FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT));
             acknowledgeQuit = slot(system, SYSTEM_ACKNOWLEDGE_QUIT, FunctionDescriptor.ofVoid());
             return null;
@@ -279,6 +286,25 @@ final class OpenVrApi {
     /** Fills {@code poses} (an array of TrackedDevicePose_t) with every device's current pose. */
     static void getPoses(int universe, MemorySegment poses, int count) throws Throwable {
         getPoses.invokeExact(universe, 0f, poses, count);
+    }
+
+    /**
+     * Headset pixels per unit of tan(angle) across the left eye's view: SteamVR's recommended render width (which
+     * includes its resolution/supersampling setting) over the tangent span of that eye's field of view.
+     */
+    static float pixelsPerTangent() throws Throwable {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment width = arena.allocate(JAVA_INT);
+            MemorySegment height = arena.allocate(JAVA_INT);
+            getRecommendedSize.invokeExact(width, height);
+            MemorySegment left = arena.allocate(JAVA_FLOAT);
+            MemorySegment right = arena.allocate(JAVA_FLOAT);
+            MemorySegment top = arena.allocate(JAVA_FLOAT);
+            MemorySegment bottom = arena.allocate(JAVA_FLOAT);
+            getProjectionRaw.invokeExact(0, left, right, top, bottom);
+            float span = right.get(JAVA_FLOAT, 0) - left.get(JAVA_FLOAT, 0);
+            return span > 0f ? width.get(JAVA_INT, 0) / span : 0f;
+        }
     }
 
     static boolean pollEvent(MemorySegment event) throws Throwable {

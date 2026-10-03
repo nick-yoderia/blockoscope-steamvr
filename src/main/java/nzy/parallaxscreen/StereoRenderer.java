@@ -182,7 +182,7 @@ public final class StereoRenderer {
         int targetWidth;
         int targetHeight;
         if (toScreen) {
-            targetWidth = StereoConfig.eyeResolution();
+            targetWidth = VrScreen.eyeResolution();
             targetHeight = Math.max(1, (int) Math.round((double) targetWidth * height / width));
             packedWidth = targetWidth * 2;
             packedHeight = targetHeight;

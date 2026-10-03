@@ -7,7 +7,10 @@ Parallax Theater (this repo started from its 0.1.5-alpha); version history befor
 ## SteamVR screen (what Parallax Screen adds)
 
 Output: `StereoRenderer.render` asks `VrScreen.active()`. When the SteamVR screen is up, each eye target is
-`eyeResolution` wide in the window's aspect (so the projection and the GUI layout, which follow the window, still
+`VrScreen.eyeResolution()` wide in the window's aspect (setting, or automatic: SteamVR's recommended render width over
+the eye's tangent span (`GetRecommendedRenderTargetSize`, `GetProjectionRaw`) times screen width / distance, i.e. the
+headset pixels across the screen at the centre of view; the null driver gives 926 px per tangent, 1200 px for 2.6 m at
+2 m) (so the projection and the GUI layout, which follow the window, still
 fit), and the eyes are packed into `screenTarget` (2 x eye width); the GUI-over-window pass draws into it (`packedWidth`
 /`packedHeight` drive `guiArea*`), `VrScreen.submit` hands its GL id to the overlay, and the window gets a preview
 (`EyeBlit.drawFull`, left half only unless `previewBothEyes`). Without SteamVR everything is Parallax Theater's half
