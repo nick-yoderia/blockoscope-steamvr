@@ -17,7 +17,9 @@ side-by-side window output.
 at the headset rate, so head motion is smooth regardless of game FPS, and the game doesn't need to track the head.
 Overlay flags `SideBySide_Parallel` (left half to the left eye) and `IgnoreTextureAlpha` (the GUI leaves alpha < 1).
 Placement: `place()` puts it `screenDistance` ahead of the HMD along its heading only (yaw), level, at eye height +
-`screenHeight`; F8 (`ToggleKey`) or changing distance/height re-places it. Width/curve are re-sent when they change;
+`screenHeight`; F8 (`ToggleKey`) or changing distance/height re-places it. Tracking space: seated when SteamVR has a
+seated origin (so "reset seated position" carries the screen along), standing otherwise (the null driver has no seated
+origin: its seated HMD pose is flagged invalid although tracking is "Running_OK"). Width/curve are re-sent when they change;
 true scale computes the width from the game's FOV setting and window aspect (`StereoRenderer.trueScaleScreenWidth`)
 and uses the screen distance as focus distance (`StereoRenderer.focusDistance()`).
 
@@ -27,8 +29,12 @@ Connecting (`VrScreen.connect`, daemon thread, every 5 s while not connected): o
 within 5 s of SteamVR starting. A shutdown hook calls `VR_ShutdownInternal` when the game exits.
 
 Texture bounds: plain 0..1 by default, as Vivecraft submits Minecraft's GL eye textures to the compositor; `flipScreen`
-flips. **Not yet checked in a headset** (the first null-driver test ran while the PC was locked, so the compositor
-output couldn't be captured).
+flips. **Not yet checked in a headset.** Ways to see the null-driver output that did *not* work: SteamVR's stereo
+screenshot (needs a scene app's textures), PrintWindow of the compositor's "Headset Window" while the PC is locked, and
+the compositor mirror texture (`IVRCompositor_028::GetMirrorTextureGL`, slot 36; it must be requested a few frames
+before reading or it is black): it showed only a flat teal scene layer (RGB 0,134,112, no scene app running), with
+neither this overlay nor the SteamVR dashboard in it, although both reported visible. So the mirror leaves overlays
+out (or the null compositor doesn't draw them); check in the headset, or capture the Headset Window while unlocked.
 
 ### OpenVR binding (`OpenVrApi`)
 
