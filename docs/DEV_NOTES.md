@@ -101,7 +101,24 @@ config). First compositor measurement (hotbar against the screen frame): -15 hea
 are the right way round. What did *not* work: SteamVR's stereo screenshot (needs a scene app's textures), PrintWindow
 while locked, and the compositor mirror texture (`GetMirrorTextureGL`), which leaves overlays out.
 
-### OpenVR binding (`OpenVrApi`)
+#Live screen adjustment (0.3.0): while the Cloth Config screen built by `StereoConfigScreen.create` is open
+(`gui.screen()` is that screen), `StereoConfigScreen.updatePreview` (called from `VrScreen.update` every frame) feeds
+its screen size/width/distance/height/curve/floating-edge entries' current values to `StereoConfig.preview`; the
+getters return those until the screen closes, then `endPreview`. Save writes the real values (identical), Cancel just
+drops the preview. Verified: dragging the width slider from 3.6 m to ~10 m resized the texture at once (5160x1080 ->
+6880x1440, auto resolution follows), Cancel restored 5160x1080 and the file kept 3.6. The user asked for it because
+every adjustment needed Save & Quit, a look, and reopening the menu.
+
+3D mode (0.3.0, `StereoConfig.mode`, replaces `enabled`; `enabled=true` migrates to `auto`): `auto` (default) =
+3D exactly while `VrScreen.active()`, else vanilla rendering, so a mod pack shared with friends without VR is plain
+Minecraft for them; `on` = always (window SBS without SteamVR); `off`. `VrScreen` keeps trying to connect unless the
+mode is `off`. F9: `enabled() ? off : on`. `OptionsScreenMixin` adds a "3D: Auto/On/Off" cycle button at (5, 5) in the
+Options screen (like Vivecraft's VR switch; the user asked for a toggle there, default off; auto was proposed as
+better). Verified: auto starts in 2D and turns 3D when the screen connects; the button cycles and saves; off stops
+the screen. The floating window strip is skipped under menus drawn into the eyes (it cut the button off in the left
+eye).
+
+## OpenVR binding (`OpenVrApi`)
 
 LWJGL's OpenVR bindings (last release 3.3.6, which Vivecraft bundles) don't load on LWJGL 3.4 (Minecraft 26.2):
 `VR.<clinit>` reads `Configuration.OPENVR_LIBRARY_NAME`, removed in 3.4, and many calls use JNI helpers whose

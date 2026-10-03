@@ -15,8 +15,8 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 
 ## Features
 
-- **Full resolution per eye:** each eye renders, in the window's shape, at as many pixels as your headset shows across
-  the screen (worked out from SteamVR's render size and field of view and the screen's size and distance), or at a
+- **Full resolution per eye:** each eye renders, in the window's shape, at 1.5x as many pixels as your headset shows
+  across the screen, rounded so the HUD lands on whole pixels (worked out from SteamVR's render size and field of view and the screen's size and distance), or at a
   width you choose. Independent of your monitor.
 - **SteamVR screen:** an OpenVR overlay in SteamVR Home or the void, with adjustable size, distance, height and curve.
   SteamVR draws it at the headset's refresh rate, so head movement stays smooth whatever the game's frame rate is.
@@ -28,8 +28,14 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - **True scale** (optional): the screen covers exactly the game's field of view and the focus is at the screen, so
   with depth strength 100% the world is life-size, as if looking through a window, with no stretching towards the
   edges. Either the screen grows to your FOV setting, or your FOV follows the screen's width and distance.
-- **Automatic:** whenever SteamVR is running the screen is there; when it isn't (or you quit it) the window shows half
-  side-by-side 3D instead. The mod never starts SteamVR itself.
+- **Automatic, and safe to share:** with 3D on Auto (the default) the game is plain Minecraft until SteamVR is
+  running, then the screen appears; quit SteamVR and it's plain Minecraft again. Friends playing the same mod pack on a
+  monitor don't have to change anything. A "3D: Auto / On / Off" button sits in the top left of Minecraft's Options
+  screen; On also shows half side-by-side 3D in the window without SteamVR. The mod never starts SteamVR itself.
+- **Live screen adjustment:** while the settings are open, the screen moves and reshapes as you drag its size,
+  distance, height and curve sliders; Cancel undoes it.
+- **Floating edges:** the screen's edges appear at the depth of your held item, so an edge never cuts through
+  something that sits in front of it.
 - **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
 - Everything from Blockoscope SBS: depth strength and focus distance, a HUD that sits on whatever is behind the hotbar,
   menus on the screen surface, a crosshair at the depth of what you aim at, hand depth, comfort options, F9 for 2D.
@@ -65,7 +71,7 @@ copied from Blockoscope SBS / Parallax Theater, if present):
 
 | Key | Default | Meaning |
 |---|---|---|
-| `enabled` | `true` | 3D on (F9 toggles it) |
+| `mode` | `auto` | `auto`: 3D on the SteamVR screen while SteamVR runs, normal 2D otherwise (safe in a mod pack shared with people without VR); `on`: always 3D (half side-by-side in the window without SteamVR); `off`. Also on a "3D:" button in the Options screen; F9 switches between on and off |
 | `steamVrScreen` | `true` | Show the game on a screen in SteamVR while it runs (`false` = window only) |
 | `eyeResolution` | `0` | Width in pixels each eye renders at for the SteamVR screen (height follows the window); `0` = automatic (1.5x what the headset shows, rounded so the HUD lands on whole pixels) |
 | `syncToHeadset` | `true` | One game frame per headset refresh while the SteamVR screen is on |

@@ -130,7 +130,8 @@ public final class VrScreen {
 
     /** Called once per frame on the render thread: connects, disconnects and follows SteamVR's events. */
     public static void update() {
-        if (!StereoConfig.enabled() || !StereoConfig.steamVrScreen()) {
+        StereoConfigScreen.updatePreview();
+        if (StereoConfig.mode() == StereoConfig.Mode.OFF || !StereoConfig.steamVrScreen()) {
             if (started) {
                 stop("turned off");
             }

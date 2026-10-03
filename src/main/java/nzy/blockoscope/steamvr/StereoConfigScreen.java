@@ -3,6 +3,10 @@ package nzy.blockoscope.steamvr;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import me.shedaniel.clothconfig2.gui.entries.BooleanListEntry;
+import me.shedaniel.clothconfig2.gui.entries.EnumListEntry;
+import me.shedaniel.clothconfig2.gui.entries.IntegerSliderEntry;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -13,7 +17,37 @@ import net.minecraft.network.chat.Component;
 public final class StereoConfigScreen {
     private static final int FOCUS_MAX_METRES = 64;
 
+    /** The open settings screen whose screen entries are shown live, and how to read them (see {@link #updatePreview}). */
+    private static Screen previewScreen;
+    private static Runnable previewSource;
+
     private StereoConfigScreen() {}
+
+    /**
+     * Called every frame: while this settings screen is open, the SteamVR screen follows its size, distance, height,
+     * curve and edge entries as they are dragged, unsaved. Once it closes (saved or not), the saved values apply again.
+     */
+    public static void updatePreview() {
+        if (previewScreen == null) {
+            return;
+        }
+        if (Minecraft.getInstance().gui.screen() == previewScreen) {
+            previewSource.run();
+        } else {
+            previewScreen = null;
+            previewSource = null;
+            StereoConfig.endPreview();
+        }
+    }
+
+    /** Short name of a 3D mode, for the settings and the Options screen's button. */
+    public static String modeName(StereoConfig.Mode mode) {
+        return switch (mode) {
+            case AUTO -> "Auto";
+            case ON -> "On";
+            case OFF -> "Off";
+        };
+    }
 
     public static Screen create(Screen parent) {
         StereoConfig.load();
@@ -27,11 +61,12 @@ public final class StereoConfigScreen {
         depth.addEntry(entries.startTextDescription(Component.literal(
             "Nearer than the focus distance pops out; farther sits behind. F9 toggles 3D.")).build());
 
-        depth.addEntry(entries.startBooleanToggle(Component.literal("3D"), StereoConfig.enabled())
-            .setDefaultValue(true)
-            .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off (2D)"))
-            .setTooltip(Component.literal("Half side-by-side."))
-            .setSaveConsumer(StereoConfig::setEnabled)
+        depth.addEntry(entries.startEnumSelector(Component.literal("3D"), StereoConfig.Mode.class, StereoConfig.mode())
+            .setDefaultValue(StereoConfig.Mode.AUTO)
+            .setEnumNameProvider(value -> Component.literal(modeName((StereoConfig.Mode) value)))
+            .setTooltip(Component.literal("Auto = 3D while SteamVR runs, normal 2D otherwise."),
+                Component.literal("On without SteamVR = half side-by-side in the window."))
+            .setSaveConsumer(StereoConfig::setMode)
             .build());
 
         depth.addEntry(entries.startIntSlider(Component.literal("Render scale"), StereoConfig.renderScale(), 25, 200)
@@ -65,7 +100,7 @@ public final class StereoConfigScreen {
         // --- SteamVR screen ---
         ConfigCategory screen = builder.getOrCreateCategory(Component.literal("SteamVR screen"));
         screen.addEntry(entries.startTextDescription(Component.literal(
-            "Shown in SteamVR while a headset is connected. F8 puts it in front of you again.")).build());
+            "Shown in SteamVR while a headset is connected. F8 puts it in front of you again. Size, distance, height and curve show live while you drag; Cancel undoes them.")).build());
 
         screen.addEntry(entries.startBooleanToggle(Component.literal("SteamVR screen"), StereoConfig.steamVrScreen())
             .setDefaultValue(true)
@@ -91,7 +126,7 @@ public final class StereoConfigScreen {
             .setSaveConsumer(StereoConfig::setSyncToHeadset)
             .build());
 
-        screen.addEntry(entries.startEnumSelector(Component.literal("Screen size"), StereoConfig.ScreenSize.class,
+        EnumListEntry<StereoConfig.ScreenSize> sizeEntry = entries.startEnumSelector(Component.literal("Screen size"), StereoConfig.ScreenSize.class,
                 StereoConfig.screenSize())
             .setDefaultValue(StereoConfig.ScreenSize.CUSTOM)
             .setEnumNameProvider(value -> Component.literal(switch ((StereoConfig.ScreenSize) value) {
@@ -103,46 +138,52 @@ public final class StereoConfigScreen {
                 Component.literal("Screen fits FOV: the screen grows to your FOV setting."),
                 Component.literal("FOV fits screen: your FOV follows the screen width and distance."))
             .setSaveConsumer(StereoConfig::setScreenSize)
-            .build());
+            .build();
+        screen.addEntry(sizeEntry);
 
-        screen.addEntry(entries.startBooleanToggle(Component.literal("Floating edges"), StereoConfig.floatingWindow())
+        BooleanListEntry floatingEntry = entries.startBooleanToggle(Component.literal("Floating edges"), StereoConfig.floatingWindow())
             .setDefaultValue(true)
             .setYesNoTextSupplier(on -> Component.literal(on ? "On" : "Off"))
             .setTooltip(Component.literal("Screen edges float at your held item's depth,"),
                 Component.literal("so it isn't cut off by an edge behind it."))
             .setSaveConsumer(StereoConfig::setFloatingWindow)
-            .build());
+            .build();
+        screen.addEntry(floatingEntry);
 
-        screen.addEntry(entries.startIntSlider(Component.literal("Screen width"),
+        IntegerSliderEntry widthEntry = entries.startIntSlider(Component.literal("Screen width"),
                 Math.round(StereoConfig.screenWidth() * 10), 5, 200)
             .setDefaultValue(26)
             .setTextGetter(value -> Component.literal(String.format("%.1f m", value / 10f)))
             .setTooltip(Component.literal("Custom and FOV fits screen."))
             .setSaveConsumer(value -> StereoConfig.setScreenWidth(value / 10f))
-            .build());
+            .build();
+        screen.addEntry(widthEntry);
 
-        screen.addEntry(entries.startIntSlider(Component.literal("Screen distance"),
+        IntegerSliderEntry distanceEntry = entries.startIntSlider(Component.literal("Screen distance"),
                 Math.round(StereoConfig.screenDistance() * 10), 5, 200)
             .setDefaultValue(20)
             .setTextGetter(value -> Component.literal(String.format("%.1f m", value / 10f)))
             .setTooltip(Component.literal("From where you sat at the last recenter (F8)."))
             .setSaveConsumer(value -> StereoConfig.setScreenDistance(value / 10f))
-            .build());
+            .build();
+        screen.addEntry(distanceEntry);
 
-        screen.addEntry(entries.startIntSlider(Component.literal("Screen height"),
+        IntegerSliderEntry heightEntry = entries.startIntSlider(Component.literal("Screen height"),
                 Math.round(StereoConfig.screenHeight() * 10), -30, 30)
             .setDefaultValue(0)
             .setTextGetter(value -> Component.literal(value == 0 ? "Eye level" : String.format("%+.1f m", value / 10f)))
             .setTooltip(Component.literal("Above or below your eyes."))
             .setSaveConsumer(value -> StereoConfig.setScreenHeight(value / 10f))
-            .build());
+            .build();
+        screen.addEntry(heightEntry);
 
-        screen.addEntry(entries.startIntSlider(Component.literal("Curve"), StereoConfig.screenCurvature(), 0, 100)
+        IntegerSliderEntry curveEntry = entries.startIntSlider(Component.literal("Curve"), StereoConfig.screenCurvature(), 0, 100)
             .setDefaultValue(0)
             .setTextGetter(value -> Component.literal(value == 0 ? "Flat" : value + "%"))
             .setTooltip(Component.literal("Bends the screen around you."))
             .setSaveConsumer(StereoConfig::setScreenCurvature)
-            .build());
+            .build();
+        screen.addEntry(curveEntry);
 
         screen.addEntry(entries.startBooleanToggle(Component.literal("Window shows"), StereoConfig.previewBothEyes())
             .setDefaultValue(false)
@@ -267,6 +308,10 @@ public final class StereoConfigScreen {
             .build());
 
         builder.setSavingRunnable(StereoConfig::save);
-        return builder.build();
+        Screen built = builder.build();
+        previewScreen = built;
+        previewSource = () -> StereoConfig.preview(sizeEntry.getValue(), widthEntry.getValue() / 10f,
+            distanceEntry.getValue() / 10f, heightEntry.getValue() / 10f, curveEntry.getValue(), floatingEntry.getValue());
+        return built;
     }
 }

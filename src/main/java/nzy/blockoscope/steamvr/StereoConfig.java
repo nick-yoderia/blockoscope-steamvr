@@ -20,6 +20,16 @@ public final class StereoConfig {
         FIXED
     }
 
+    /** When the game renders in 3D. */
+    public enum Mode {
+        /** While the SteamVR screen is up (SteamVR running), flat otherwise: right for a shared mod pack. */
+        AUTO,
+        /** Always; without SteamVR as half side-by-side in the window. */
+        ON,
+        /** Never: plain Minecraft. */
+        OFF
+    }
+
     /** How the SteamVR screen's size and the game's field of view relate. */
     public enum ScreenSize {
         /** Screen width as set; the game's own field of view (the picture is stretched or squeezed to fit). */
@@ -44,7 +54,7 @@ public final class StereoConfig {
         Path.of("config", "parallax-theater.properties"));
     private static final String HEADER = String.join("\n",
         "Blockoscope SteamVR",
-        "enabled: render in stereo 3D (false = normal 2D)",
+        "mode: auto (3D on the SteamVR screen while SteamVR runs, normal 2D otherwise), on (always 3D; half side-by-side in the window without SteamVR) or off (normal 2D)",
         "renderScale: in the window (no SteamVR screen), % of the half-window resolution each eye renders at (lower = faster)",
         "depthPercent: 3D strength as a % of average eye spacing (100 = natural, 0 = flat)",
         "focusDistance: metres that sit exactly at the screen surface; 0 = infinity (everything in front of it)",
@@ -75,7 +85,7 @@ public final class StereoConfig {
         "hideCursor: hide the Windows cursor over the game window and draw one in both eyes instead",
         "confineCursor: keep the cursor inside the game window while it is focused");
 
-    private static boolean enabled = true;
+    private static Mode mode = Mode.AUTO;
     private static int renderScale = 100;
     private static int depthPercent = 100;
     private static float focusDistance = 10f;
@@ -106,13 +116,34 @@ public final class StereoConfig {
     private static boolean hideCursor = true;
     private static boolean confineCursor = true;
 
+    /**
+     * Screen settings shown live while the settings screen is open (null = the saved value): dragging a slider moves
+     * or reshapes the SteamVR screen at once, so you can see the result in the headset without saving and reopening
+     * the menu. Save keeps the values, Cancel drops them (see {@link StereoConfigScreen#updatePreview}).
+     */
+    private static ScreenSize previewScreenSize;
+    private static Float previewScreenWidth;
+    private static Float previewScreenDistance;
+    private static Float previewScreenHeight;
+    private static Integer previewScreenCurvature;
+    private static Boolean previewFloatingWindow;
+
     static {
         load();
     }
 
     private StereoConfig() {}
 
-    public static boolean enabled() { return enabled; }
+    public static Mode mode() { return mode; }
+
+    /**
+     * True when the game renders in 3D now. Auto follows the SteamVR screen, so friends without VR playing the same
+     * mod pack see plain Minecraft without touching a setting, and putting on the headset (starting SteamVR) is all
+     * it takes to get 3D.
+     */
+    public static boolean enabled() {
+        return mode == Mode.ON || mode == Mode.AUTO && VrScreen.active();
+    }
     public static int renderScale() { return renderScale; }
     public static int depthPercent() { return depthPercent; }
     public static float focusDistance() { return focusDistance; }
@@ -128,14 +159,14 @@ public final class StereoConfig {
     public static boolean swapEyes() { return swapEyes; }
     public static boolean steamVrScreen() { return steamVrScreen; }
     public static int eyeResolution() { return eyeResolution; }
-    public static ScreenSize screenSize() { return screenSize; }
+    public static ScreenSize screenSize() { return previewScreenSize != null ? previewScreenSize : screenSize; }
     /** True in either life-size mode: the screen covers exactly the game's field of view and is the focus distance. */
-    public static boolean lifeSize() { return screenSize != ScreenSize.CUSTOM; }
-    public static boolean floatingWindow() { return floatingWindow; }
-    public static float screenWidth() { return screenWidth; }
-    public static float screenDistance() { return screenDistance; }
-    public static float screenHeight() { return screenHeight; }
-    public static int screenCurvature() { return screenCurvature; }
+    public static boolean lifeSize() { return screenSize() != ScreenSize.CUSTOM; }
+    public static boolean floatingWindow() { return previewFloatingWindow != null ? previewFloatingWindow : floatingWindow; }
+    public static float screenWidth() { return previewScreenWidth != null ? previewScreenWidth : screenWidth; }
+    public static float screenDistance() { return previewScreenDistance != null ? previewScreenDistance : screenDistance; }
+    public static float screenHeight() { return previewScreenHeight != null ? previewScreenHeight : screenHeight; }
+    public static int screenCurvature() { return previewScreenCurvature != null ? previewScreenCurvature : screenCurvature; }
     public static boolean flipScreen() { return flipScreen; }
     public static boolean previewBothEyes() { return previewBothEyes; }
     public static boolean cameraBobbing() { return cameraBobbing; }
@@ -144,7 +175,7 @@ public final class StereoConfig {
     public static boolean hideCursor() { return hideCursor; }
     public static boolean confineCursor() { return confineCursor; }
 
-    public static void setEnabled(boolean value) { enabled = value; }
+    public static void setMode(Mode value) { mode = value == null ? Mode.AUTO : value; }
     public static void setRenderScale(int value) { renderScale = Math.max(25, Math.min(200, value)); }
     public static void setDepthPercent(int value) { depthPercent = Math.max(0, Math.min(300, value)); }
     public static void setFocusDistance(float value) { focusDistance = Math.max(0f, value); }
@@ -176,6 +207,26 @@ public final class StereoConfig {
     public static void setHideCursor(boolean value) { hideCursor = value; }
     public static void setConfineCursor(boolean value) { confineCursor = value; }
 
+    /** Shows these screen settings live instead of the saved ones (clamped like the saved ones). */
+    public static void preview(ScreenSize size, float width, float distance, float height, int curvature, boolean floating) {
+        previewScreenSize = size == null ? ScreenSize.CUSTOM : size;
+        previewScreenWidth = Math.max(0.5f, Math.min(20f, width));
+        previewScreenDistance = Math.max(0.5f, Math.min(20f, distance));
+        previewScreenHeight = Math.max(-3f, Math.min(3f, height));
+        previewScreenCurvature = Math.max(0, Math.min(100, curvature));
+        previewFloatingWindow = floating;
+    }
+
+    /** Back to the saved screen settings. */
+    public static void endPreview() {
+        previewScreenSize = null;
+        previewScreenWidth = null;
+        previewScreenDistance = null;
+        previewScreenHeight = null;
+        previewScreenCurvature = null;
+        previewFloatingWindow = null;
+    }
+
     /** Distance between the two eye cameras, in metres. */
     public static float ipd() {
         return AVERAGE_IPD * depthPercent / 100f;
@@ -192,7 +243,9 @@ public final class StereoConfig {
                 System.out.println("[Blockoscope SteamVR] Could not read " + source + ", using defaults: " + e);
             }
         }
-        enabled = parseBoolean(props.getProperty("enabled"), true);
+        // 0.2.1 and earlier had enabled (true/false, default true); true becomes auto.
+        Mode oldMode = "false".equals(props.getProperty("enabled", "").trim()) ? Mode.OFF : Mode.AUTO;
+        mode = parseEnum(Mode.class, props.getProperty("mode"), oldMode);
         setRenderScale((int) Math.round(parseDouble(props.getProperty("renderScale"), 100)));
         setDepthPercent((int) Math.round(parseDouble(props.getProperty("depthPercent"), 100)));
         setFocusDistance((float) parseDouble(props.getProperty("focusDistance"), 10));
@@ -231,7 +284,7 @@ public final class StereoConfig {
 
     public static void save() {
         Properties out = new Properties();
-        out.setProperty("enabled", String.valueOf(enabled));
+        out.setProperty("mode", mode.name().toLowerCase(java.util.Locale.ROOT));
         out.setProperty("renderScale", String.valueOf(renderScale));
         out.setProperty("depthPercent", String.valueOf(depthPercent));
         out.setProperty("focusDistance", String.valueOf(focusDistance));

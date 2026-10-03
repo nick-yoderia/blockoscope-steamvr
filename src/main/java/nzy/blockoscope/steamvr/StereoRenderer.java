@@ -317,7 +317,9 @@ public final class StereoRenderer {
         CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
         encoder.clearColorTexture(packed.getColorTexture(), BLACK);
         int leftHalf = StereoConfig.swapEyes() ? RIGHT : LEFT;
-        int mask = renderLevel ? floatingWindowPixels(width, height) : 0;
+        // Not under a menu drawn into the eyes (blur): it sits on the screen surface and would lose its outer edge in
+        // one eye (the Options screen's 3D button was cut off in the left eye).
+        int mask = renderLevel && guiOverWindow ? floatingWindowPixels(width, height) : 0;
         EyeBlit.draw(encoder, targets[leftHalf], packed, 0, leftHalf == LEFT ? mask : 0, leftHalf == LEFT ? 0 : mask);
         EyeBlit.draw(encoder, targets[1 - leftHalf], packed, 1, leftHalf == LEFT ? 0 : mask, leftHalf == LEFT ? mask : 0);
         if (guiOverWindow) {
