@@ -307,10 +307,10 @@ screen at 1920 per eye (3840x1080 texture) and the null-driver compositor runnin
 
 ## Open items
 
-- Depth polish (commit 12f5a13, after v0.3.1-alpha) is not pushed or released: waiting for the user's Steam Frame
-  check of Nearest pop-out (1.0 m; try 1.2-1.5 m if close blocks are still hard to focus on), the hand in front of
-  walls, and the headset IPD (the null driver reports none). Then release 0.3.2-alpha and rebuild the modpack. Also
-  ask whether FOV effects (sprint/fly zoom changes depth) bother them.
+- Depth polish (0.3.2-alpha) was released before a Steam Frame check (the user passed the pack on to someone). Still to
+  check in a headset: Nearest pop-out (1.0 m; try 1.2-1.5 m if close blocks are still hard to focus on), the hand in
+  front of walls, and the headset IPD (the null driver reports none). Also ask whether FOV effects (sprint/fly zoom
+  changes depth) bother them.
 - Headset check of the SteamVR screen in the Steam Frame: placement and F8, sharpness, comfort of the default size
   (2.6 m at 2 m). Orientation and eye order are verified in the null headset's compositor.
 - D3D11 device on the default adapter: on a multi-GPU PC where the game runs on another GPU, the interop fails and

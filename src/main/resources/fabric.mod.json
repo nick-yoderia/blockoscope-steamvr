@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "blockoscope_steamvr",
-  "version": "0.3.1-alpha",
+  "version": "0.3.2-alpha",
   "name": "Blockoscope SteamVR",
   "description": "Renders Minecraft in stereoscopic 3D straight onto a virtual screen in SteamVR, at full resolution per eye, with no monitor or VR mod needed.",
   "authors": [
