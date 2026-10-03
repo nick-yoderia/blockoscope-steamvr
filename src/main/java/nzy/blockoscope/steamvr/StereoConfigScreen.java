@@ -84,8 +84,8 @@ public final class StereoConfigScreen {
             .setTooltip(tip(
                 "Auto: 3D only while you use a headset in SteamVR,",
                 "  normal Minecraft otherwise. Best for a shared pack.",
-                "On: always 3D. Without a headset the window shows",
-                "  both eyes side by side (for 3D TVs or Bigscreen).",
+                "On: always 3D, on the SteamVR screen. Without",
+                "  SteamVR the window shows both eyes side by side.",
                 "Off: normal Minecraft.",
                 "Also on the title screen, next to Singleplayer."))
             .setSaveConsumer(StereoConfig::setMode)

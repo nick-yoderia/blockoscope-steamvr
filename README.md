@@ -1,7 +1,5 @@
 # Blockoscope SteamVR
 
-*Formerly Parallax Screen.*
-
 > **Alpha.** Built and tested on one setup (see [Tested with](#tested-with)). Expect rough edges.
 
 A Fabric mod that shows Minecraft in **stereoscopic 3D on a virtual screen in SteamVR**. Each eye is rendered at full
@@ -36,8 +34,12 @@ Packing halves each eye's horizontal resolution, and the viewer stretches it bac
 - **Live screen adjustment:** while the settings are open, the screen moves and reshapes as you drag its size,
   distance, height and curve sliders; Cancel undoes it.
 - **Window preview:** while the SteamVR screen is on, the window shows the left eye in plain 2D.
-- Everything from Blockoscope SBS: depth strength and focus distance, a HUD that sits on whatever is behind the hotbar,
-  menus on the screen surface, a crosshair at the depth of what you aim at, hand depth, comfort options, F9 for 2D.
+- **Depth controls:** depth strength (eye spacing, 100% = natural) and focus distance, the distance that sits exactly
+  on the screen surface. Nearer things pop out of the screen, farther things sit behind it.
+- **HUD and menus in depth:** the HUD sits on whatever is behind the hotbar, menus on the screen surface, and the
+  crosshair at the depth of what you aim at, so it never looks doubled. A cursor is drawn in both eyes in menus.
+- **Hand depth, comfort options** (camera bobbing and damage tilt off in 3D, toned-down nausea and portal warp), and
+  **F9** to switch between 3D and normal 2D.
 
 ### Works with
 
@@ -67,8 +69,8 @@ Java may print a one-time warning about "restricted methods": that is the mod ca
 
 **Mods > Blockoscope SteamVR** (needs Mod Menu and Cloth Config), in tabs General, Screen, Picture, Depth, HUD & Hand,
 Comfort and Cursor. Hover over a setting to see what it does; settings that don't apply are greyed out. Saving applies
-changes immediately. Everything is also stored in `config/blockoscope-steamvr.properties` (the first time, settings are taken over from Parallax Screen or
-copied from Blockoscope SBS / Parallax Theater, if present):
+changes immediately. Everything is also stored in `config/blockoscope-steamvr.properties` (the first time, settings
+are copied from Blockoscope SBS, if present):
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -113,7 +115,9 @@ SteamVR shows each half to one eye. Nothing is read back to the CPU.
 
 SteamVR is called directly through Valve's `openvr_api.dll` (bundled, BSD licence) with Java's foreign function API:
 LWJGL's OpenVR bindings were last released for LWJGL 3.3 and don't load on the LWJGL 3.4 that Minecraft 26.2 ships.
-`docs/DEV_NOTES.md` has the details, and every two-renders-per-frame workaround (shared with Blockoscope SBS).
+Rendering the same frame twice exposes per-frame caches in the game and in other mods (entity and particle lists,
+Sodium's terrain matrices, Iris pipelines, Voxy viewports, the sky and clouds), which the mod works around;
+`docs/DEV_NOTES.md` has the details.
 
 ## Building
 
@@ -128,8 +132,7 @@ bash build.sh   # -> build/blockoscope-steamvr-<version>.jar
 ## Tested with
 
 - Minecraft 26.2, Fabric Loader 0.19.5, Sodium 0.9.1, Iris 1.11.2 (BSL), Voxy 0.2.19-beta
-- Windows 11, AMD Radeon RX 9070 XT, SteamVR 2.18 (so far with SteamVR's null test headset; Valve Steam Frame via
-  Steam Link pending)
+- Windows 11, AMD Radeon RX 9070 XT, SteamVR 2.18, Valve Steam Frame via Steam Link
 
 ## License
 

@@ -32,7 +32,7 @@ public abstract class TitleScreenMixin extends Screen {
                 button.setMessage(blockoscopeSteamVr$label());
             })
             .bounds(width / 2 + 104, height / 4 + 48, 64, 20)
-            .tooltip(Tooltip.create(Component.literal("Blockoscope 3D. Auto: 3D only while you use a headset in "
+            .tooltip(Tooltip.create(Component.literal("Blockoscope SteamVR. Auto: 3D only while you use a headset in "
                 + "SteamVR, normal Minecraft otherwise. On: always 3D. Off: normal Minecraft.")))
             .build());
     }
