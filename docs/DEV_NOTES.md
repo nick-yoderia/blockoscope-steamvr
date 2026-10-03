@@ -63,6 +63,11 @@ Texture bounds: the GL id needs plain 0..1 (SteamVR accounts for GL's bottom-up 
 eye textures); the D3D11 copy arrives upside down (GL row 0 is the bottom one), so `D3dShare.FLIPPED` flips the
 bounds; `flipScreen` flips once more. Both verified upright in the null headset's compositor window.
 
+Also seen in the compositor: `screenCurvature` 30 bends the screen around the viewer in both eyes; `trueScale` with
+the instance's FOV 90 makes the screen ~7 m wide at 2 m (it fills the null headset's view), auto resolution follows
+(3296 px per eye, a 6592x1854 texture, ~75 FPS, so pacing correctly runs free at 13 ms of work per frame). True scale
+is expensive at high FOV settings because everything the game's FOV covers is rendered at headset density.
+
 Seeing the null headset's output: capture the compositor's "Headset Window" (`winshot.ps1 -Process vrcompositor`)
 while the PC is unlocked; it shows the overlay in both eyes. Disable the dashboard in the test config
 (`dashboard.enableDashboard false`) or it covers the screen; "Room Setup / Waiting" remains (no room setup in the test
