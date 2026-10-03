@@ -75,6 +75,8 @@ public final class StereoRenderer {
     private static long lastFrameNanos;
     /** 1 / distance at which the GUI sits this frame, smoothed; see {@link #updateGuiDepth}. */
     private static float guiInverseDistance;
+    /** Whether the GUI was a menu (not the in-game HUD) last frame; see {@link #updateGuiDepth}. */
+    private static boolean guiWasMenu;
     /** 1 / distance of the nearest thing behind the hotbar and status bars this frame, or -1 for nothing. */
     private static float hudSceneInverseDistance = -1f;
     /** Length of the HUD's depth rays, in blocks; anything farther has next to no disparity anyway. */
@@ -509,6 +511,8 @@ public final class StereoRenderer {
      * also follow the crosshair (aim) or stay at the fixed HUD distance. It eases over ~120 ms so it doesn't flicker
      * along block edges.</li>
      * </ul>
+     * Opening or closing a menu snaps to the new depth: easing from the HUD's depth slid the whole inventory sideways
+     * in each eye as it opened (the user wants menus snappy, at a standard distance).
      * The chat screen counts as HUD: it opens over the game and the hotbar stays in view.
      */
     private static void updateGuiDepth(float seconds) {
@@ -527,7 +531,12 @@ public final class StereoRenderer {
                 case FIXED -> inverseDistanceOrScreen(StereoConfig.hudDistance(), inverseFocus);
             };
         }
-        guiInverseDistance += (target - guiInverseDistance) * (1f - (float) Math.exp(-seconds / 0.12f));
+        if (menu || guiWasMenu) {
+            guiInverseDistance = target;
+        } else {
+            guiInverseDistance += (target - guiInverseDistance) * (1f - (float) Math.exp(-seconds / 0.12f));
+        }
+        guiWasMenu = menu;
     }
 
     /** 1 / distance, where 0 m means the screen surface (the focus distance). */

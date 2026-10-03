@@ -190,6 +190,12 @@ pixel-identical between the eyes apart from the blurred world behind; aimed at n
 +1.0 px, crosshair +0.7 px (formula +0.9); aimed at grass 0.99 m away hotbar -14.7 px, crosshair -14.2 px (formula
 -14.2). Chat keeps the HUD depth. The user's dev instance has E/Q swapped (Q = inventory, E = drop).
 
+Menus snap (0.3.1): opening or closing a menu sets the GUI depth at once; only the HUD's own depth changes ease.
+The ~120 ms ease from the HUD's depth to the menu's slid the whole inventory sideways in each eye as it opened (in
+the window measured -4 px to 0 over ~200 ms); the user wants menus snappy at a standard distance. They also saw the
+items "static and detached" from that slide in the headset; in the window the items moved with the panel (measured),
+and with no slide left there is nothing to detach from. Verified: the inventory's first frame is at its final place.
+
 Measured 0.1.4 (same settings): crosshair identical 2 px lines in both eyes; looking 55 degrees down the hotbar at
 -34 px over ground measured at -30 px; level view with a grass block under the hotbar's left side: hotbar -24 px
 (that block -24 px) while the crosshair rests at +2 px; pause menu and inventory 0 px; FPS unchanged (~225).
@@ -223,7 +229,8 @@ Depth math: an eye at x = side * ipd/2 sees a point straight ahead at distance d
 | Shader TAA/cloud history smeared between eyes | One Iris pipeline shared by both eyes | `IrisPipelineManagerMixin` gives the right eye its own pipeline; frame counter and timer advance once per frame (`IrisFrameCounterMixin`, `IrisTimerMixin`) |
 | Missing clouds/fog with shaders | Iris only re-reads the depth texture when the target's "depth buffer version" changes | `IrisRenderTargetsMixin` treats a different depth texture as a change |
 | No hand depth with shaders | Iris draws the hand with its own projection | `IrisHandRendererMixin` |
-| Voxy LODs (and BSL clouds) missing in one eye with shaders | Voxy binds to the one Iris pipeline that existed when it started | `VoxyIrisPipelineMixin` points Voxy's framebuffers at the current eye's draw targets and links that eye's Voxy data. **It must keep Voxy's original data for the uniform block**: each pipeline lists the same uniforms in a different order, and writing another pipeline's layout made Voxy's culling read garbage (empty render list) |
+| Voxy LODs (and BSL clouds) missing in one eye with shaders | Voxy binds to the one Iris pipeline that existed when it started | `VoxyIrisPipelineMixin` points Voxy's framebuffers at the current eye's draw targets and links that eye's Voxy data |
+| Distant (Voxy) water flat on the screen surface in 3D, reflections broken (user report) | Voxy's terrain shaders still got the *first* pipeline's textures (colortex/depthtex/shadow), storage buffers and custom uniforms, so the right eye's water sampled the left eye's picture. Measured with Complementary: island +6 px, water around it 0 px | `VoxyIrisPipelineMixin` swaps the current eye's whole Voxy data in (uniforms, image set, SSBOs); `VoxyUniformOrderMixin` sorts the uniform block by name so every pipeline has the same layout (custom uniforms came out of an identity hash map in a different order per pipeline, and writing another order made Voxy's culling read garbage). Mismatching data falls back to draw targets only and logs once. After: water +6 px like the island |
 | Voxy culling against the other eye | Occlusion data (HiZ, frame ids) lives in the viewport | `VoxyViewportSelectorMixin` gives the right eye its own viewport (as Voxy does for Vivecraft) |
 
 Rule of thumb when something shows in only one eye: look for (a) state computed once per frame or at extraction
@@ -296,5 +303,4 @@ screen at 1920 per eye (3840x1080 texture) and the null-driver compositor runnin
   -8 px, chat at its vanilla position in the right eye and 8 px further in in the left. Full-width elements (the chat
   input bar's background) stay centred and still lose a few pixels at both edges.
 - One depth for the whole HUD (per-element depth would need per-element shifts per eye).
-- Voxy uses its original pipeline's uniform *values* for both eyes (camera position etc. of that eye); only
-  draw targets follow the eye. No visible issue found.
+- Voxy follows the eye completely since 0.3.1 (see the table); the uniform order is ours (sorted), not Voxy's.

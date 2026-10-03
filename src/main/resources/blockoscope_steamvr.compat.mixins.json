@@ -12,6 +12,8 @@
     "iris.IrisTimerMixin",
     "sodium.SodiumUniformBufferManagerMixin",
     "voxy.VoxyIrisPipelineMixin",
+    "voxy.VoxyUniformOrderMixin",
+    "voxy.VoxyUniformWritingHolderAccessor",
     "voxy.VoxyViewportSelectorMixin"
   ],
   "injectors": {
